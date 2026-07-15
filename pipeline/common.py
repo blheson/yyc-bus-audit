@@ -13,6 +13,22 @@ GTFS_STATIC_URL = "https://data.calgary.ca/download/npk7-z3bj/application%2Fx-zi
 RT_VEHICLE_POSITIONS_URL = "https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream"
 RT_TRIP_UPDATES_URL = "https://data.calgary.ca/download/gs4m-mdc2/application%2Foctet-stream"
 
+# Socrata (SODA) dataset ids for the demand model's proxy data
+# (verified 2026-07-15; cordon open data is DAILY totals only — the
+# printed cordon reports have hourly tables but the datasets do not)
+SODA_DATASETS = {
+    "communities_pop": "f9wk-wej9",   # 2021 federal census pop by community (+polygons)
+    "modes_2016": "7ta2-pupq",        # civic census 2016 modes of travel (+transit share)
+    "lrt_stations": "2axz-xm4q",      # LRT station points
+    "ridership_monthly": "iema-jbc4", # system-level monthly boardings
+    "cordon_2023": "ii28-85m5",       # CBD cordon count 2023 (daily, by screenline)
+    "cordon_2019": "ghvn-cts5",       # CBD cordon count 2019 (pre-COVID reference)
+}
+
+
+def soda_csv_url(dataset_id: str, limit: int = 50000) -> str:
+    return f"https://data.calgary.ca/resource/{dataset_id}.csv?$limit={limit}"
+
 # Service periods for a weekday; weekend handled as its own period.
 # Bounds are seconds since midnight (GTFS stop_times can exceed 24h for
 # after-midnight trips on the previous service day).
