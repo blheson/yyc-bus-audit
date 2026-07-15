@@ -24,8 +24,10 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/pytest test_supply.py     # sanity checks
 ```
 
-To collect realtime data (needed for Phase 2 metrics), see
-`pipeline/launchd/README.md`.
+To collect realtime data (needed for Phase 2 metrics), open the app's
+**Collector** tab and press "Start collecting" — it shows live progress
+and stops from the same tab. (Optional always-on alternative:
+`pipeline/launchd/README.md`.)
 
 ## Web app
 

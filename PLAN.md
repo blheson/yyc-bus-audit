@@ -1,5 +1,9 @@
 # Calgary Bus Route Optimization — Analysis Pipeline + Map App
 
+## End goal
+
+A **well-executed civic data project**: finished, deployed, honestly framed, and put in front of people. Success is the quality and reception of the artifact — not the city adopting the schedule (transit agencies don't adopt outside schedules directly; they have their own planners, APC data, and political constraints). "Meaningful for government" is achieved through Phase 6 below, with the direct city pitch as the stretch outcome, not the bar.
+
 ## Context
 
 Personal project: use AI/optimization on Calgary's open transit data to find bus schedule changes that cut fuel use (vehicle-km) without reducing service availability — potentially growing into a proposal for the city.
@@ -66,6 +70,18 @@ Pipeline outputs static JSON; no backend server needed.
 
 ### Phase 5 — App (later milestone, after findings exist)
 - Rebuild `src/`: Leaflet map of route shapes colored by savings opportunity; route detail panel (headway before/after, estimated load profile, savings); citywide savings dashboard; methodology page (credibility for a city pitch). Reads `public/data/*.json`.
+
+### Phase 6 — Dissemination (the actual finish line)
+Prerequisite: ~~`git init`~~ (done 2026-07-15) + public GitHub repo (not yet created).
+- **Publish the code**: GitHub repo, README leading with the headline number ("X% vehicle-km savings ≈ Y litres diesel ≈ $Z/year, with no stop served worse than today").
+- **Deploy the app**: static JSON means GitHub Pages/Netlify, free — a live map link is the demo.
+- **Write-up**: methodology + limitations (modeled demand, ranges not point claims, fuel factor caveats) as a blog post or docs page. This is what makes transit professionals engage instead of dismissing it.
+- **Civic channels** (roughly in order of ease):
+  1. Submit to Calgary's open data program as a showcase use (they actively look for these).
+  2. Present at Civic Tech YYC.
+  3. Brief transit advocacy groups / a councillor's office — lead with the positive-sum corridor-coordination finding, not cuts.
+  4. Pitch Calgary Transit for an APC data partnership ("open data alone shows this much — your data makes it decision-grade"); FOIP as fallback.
+- Success metric: project is public, deployed, written up, and presented in at least one civic channel. A response from the city is upside, not the bar.
 
 ## Verification
 - **Phase 1:** pytest sanity checks (vehicle-km totals in plausible range; headways match published schedules for spot-checked routes; every route has shape + stops).
