@@ -155,6 +155,9 @@ function archiverApi() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ command, isPreview }) => ({
+  // Deployed at https://blheson.github.io/yyc-bus-audit/ (GitHub Pages);
+  // dev stays at "/" so the collector workflow is unchanged.
+  base: command === "build" || isPreview ? "/yyc-bus-audit/" : "/",
   plugins: [react(), tailwindcss(), archiverApi()],
-});
+}));

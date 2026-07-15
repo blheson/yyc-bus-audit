@@ -4,8 +4,10 @@ Personal project: analyze Calgary Transit's open data to find schedule
 changes that cut fuel use (vehicle-kilometres) **without reducing service
 availability** — and present the findings on an interactive map.
 
-See `PLAN.md` for the full approach and `docs/FINDINGS-supply.md` for
-current results.
+**Live map:** https://blheson.github.io/yyc-bus-audit/
+
+See `PLAN.md` for the full approach, `docs/WRITEUP.md` for the public
+write-up, and `docs/FINDINGS-*.md` for detailed results.
 
 ## Layout
 
