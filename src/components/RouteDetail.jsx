@@ -39,7 +39,107 @@ function FlagChip({ flag }) {
   );
 }
 
-export default function RouteDetail({ route, allRoutes, systemWeekdayKm, dieselPerKm, onSelect, onClose }) {
+const DAY_SHORT = { weekday: "Wkday", saturday: "Sat", sunday: "Sun" };
+
+function OptimizerSection({ route, optimizer }) {
+  if (!optimizer) return null;
+  const money = new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    maximumFractionDigits: 0,
+  });
+  const litres =
+    route.savedKmYear * (optimizer.assumptions.diesel_l_per_km || 0.5);
+  return (
+    <div>
+      <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--ink-3)" }}>
+        Optimizer proposal · conservative scenario
+      </h3>
+      {route.changes.length === 0 ? (
+        <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+          No change proposed — modeled loads or service standards keep
+          today's frequency in place.
+        </p>
+      ) : (
+        <>
+          <table className="w-full text-xs" style={{ color: "var(--ink-2)" }}>
+            <thead>
+              <tr className="text-left" style={{ color: "var(--ink-3)" }}>
+                <th className="py-0.5 font-medium">When</th>
+                <th className="py-0.5 text-right font-medium">Every</th>
+                <th className="py-0.5 text-right font-medium">Peak load</th>
+              </tr>
+            </thead>
+            <tbody className="tabular-nums">
+              {route.changes.map((c) => (
+                <tr
+                  key={`${c.day}-${c.period}`}
+                  className="border-t"
+                  style={{ borderColor: "var(--hairline)" }}
+                >
+                  <td className="py-1">
+                    {DAY_SHORT[c.day]} {(PERIOD_NAMES[c.period] || c.period).split(" (")[0].toLowerCase()}
+                  </td>
+                  <td className="py-1 text-right">
+                    {Math.round(c.headway)} → <strong style={{ color: "var(--ink-1)" }}>{Math.round(c.new_headway)}</strong> min
+                  </td>
+                  <td className="py-1 text-right">
+                    {c.peak_load} → {c.peak_load_new}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--ink-1)" }}>
+            ≈ {fmt.format(Math.round(route.savedKmYear))} km,{" "}
+            {fmt.format(Math.round(litres))} L diesel,{" "}
+            {money.format(litres * (optimizer.assumptions.diesel_price_cad_per_l || 1.65))}{" "}
+            saved per year
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DemandSection({ route }) {
+  const wd = route.demand?.days?.weekday;
+  if (!wd) return null;
+  const order = ["am_peak", "midday", "pm_peak", "evening", "early_late"];
+  const rows = order.filter((k) => wd[k]);
+  return (
+    <div>
+      <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--ink-3)" }}>
+        Modeled weekday demand
+      </h3>
+      <table className="w-full text-xs" style={{ color: "var(--ink-2)" }}>
+        <thead>
+          <tr className="text-left" style={{ color: "var(--ink-3)" }}>
+            <th className="py-0.5 font-medium">Period</th>
+            <th className="py-0.5 text-right font-medium">Board / trip</th>
+            <th className="py-0.5 text-right font-medium">Peak load range</th>
+          </tr>
+        </thead>
+        <tbody className="tabular-nums">
+          {rows.map((k) => (
+            <tr key={k} className="border-t" style={{ borderColor: "var(--hairline)" }}>
+              <td className="py-1">{(PERIOD_NAMES[k] || k).split(" (")[0]}</td>
+              <td className="py-1 text-right">{wd[k].boardings_per_trip}</td>
+              <td className="py-1 text-right">
+                {wd[k].peak_load_range[0]}–{wd[k].peak_load_range[2]} pax
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+        Modeled from land use, calibrated to system totals — not measured.
+      </p>
+    </div>
+  );
+}
+
+export default function RouteDetail({ route, allRoutes, systemWeekdayKm, dieselPerKm, optimizer, onSelect, onClose }) {
   const wk = route.weekday;
   const share = (wk.vehicle_km / systemWeekdayKm) * 100;
   const byId = new Map(allRoutes.map((r) => [r.route_id, r]));
@@ -99,6 +199,9 @@ export default function RouteDetail({ route, allRoutes, systemWeekdayKm, dieselP
             ))}
           </div>
         )}
+
+        {route.is_bus && <OptimizerSection route={route} optimizer={optimizer} />}
+        {route.is_bus && <DemandSection route={route} />}
 
         <div>
           <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--ink-3)" }}>

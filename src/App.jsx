@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import CollectorView from "./components/CollectorView";
+import MethodologyView from "./components/MethodologyView";
 import RouteDetail from "./components/RouteDetail";
 import RouteList from "./components/RouteList";
-import RouteMap, { MapLegend } from "./components/RouteMap";
+import RouteMap, { ColorModeToggle, MapLegend } from "./components/RouteMap";
+import SavingsView from "./components/SavingsView";
 import { filterRoutes, fmt, loadTransitData, sortRoutes } from "./lib/data";
 
 function ViewTabs({ view, onView }) {
   const tabs = [
     ["network", "Network"],
+    ["savings", "Savings"],
+    ["methodology", "Methodology"],
     ["collector", "Collector"],
   ];
   return (
@@ -61,11 +65,11 @@ export default function App() {
   const [filterKey, setFilterKey] = useState("all");
   const [sortKey, setSortKey] = useState("fuel");
   const [selectedId, setSelectedId] = useState(null);
-  const [view, setView] = useState(() =>
-    new URLSearchParams(window.location.search).get("view") === "collector"
-      ? "collector"
-      : "network"
-  );
+  const [colorMode, setColorMode] = useState("savings");
+  const [view, setView] = useState(() => {
+    const v = new URLSearchParams(window.location.search).get("view");
+    return ["collector", "savings", "methodology"].includes(v) ? v : "network";
+  });
 
   useEffect(() => {
     loadTransitData()
@@ -150,13 +154,31 @@ export default function App() {
           unit="t"
           label="est. CO₂ per year"
         />
-        <StatTile value={flaggedCount} label="routes flagged" />
+        {data.optimizer ? (
+          <StatTile
+            value={`$${(data.optimizer.summary.conservative.saved_cad / 1e6).toFixed(1)}M`}
+            unit="/yr"
+            label="potential savings (modeled)"
+          />
+        ) : (
+          <StatTile value={flaggedCount} label="routes flagged" />
+        )}
       </header>
 
       {view === "collector" ? (
         <div className="min-h-0 flex-1">
           <CollectorView />
         </div>
+      ) : view === "savings" ? (
+        <SavingsView
+          data={data}
+          onSelectRoute={(id) => {
+            setSelectedId(id);
+            setView("network");
+          }}
+        />
+      ) : view === "methodology" ? (
+        <MethodologyView />
       ) : (
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
         <aside
@@ -180,16 +202,22 @@ export default function App() {
           <RouteMap
             routes={data.routes}
             thresholds={data.thresholds}
+            savingsThresholds={data.savingsThresholds}
+            colorMode={data.optimizer ? colorMode : "fuel"}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
-          <MapLegend />
+          {data.optimizer && (
+            <ColorModeToggle colorMode={colorMode} onColorMode={setColorMode} />
+          )}
+          <MapLegend colorMode={data.optimizer ? colorMode : "fuel"} />
           {selected && (
             <RouteDetail
               route={selected}
               allRoutes={data.routes}
               systemWeekdayKm={sys.weekday.bus_vehicle_km}
               dieselPerKm={data.supply.assumptions.diesel_l_per_km}
+              optimizer={data.optimizer}
               onSelect={setSelectedId}
               onClose={() => setSelectedId(null)}
             />

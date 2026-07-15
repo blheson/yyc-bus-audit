@@ -62,11 +62,12 @@ Pipeline outputs static JSON; no backend server needed.
 
 ### Phase 4 — Optimizer
 - `optimize.py`, OR-Tools MIP/CP-SAT:
-  - **Variable:** headway per (route, period) from {10, 12, 15, 20, 30, 45, 60} min.
+  - **Variable:** headway per (route, period, day-type) from {10, 12, 15, 20, 30, 45, 60} min, never shorter than today's.
   - **Objective:** minimize total vehicle-km.
-  - **Constraints:** (a) peak load per trip = demand × headway ≤ bus capacity × load-factor policy; (b) headway ≤ current headway at every route/period (availability never worse); (c) total vehicles needed per period ≤ current fleet usage.
+  - **Constraints (as built):** (a) peak load per trip = demand × headway ≤ bus capacity × load-factor policy; (b) availability — no stop loses service in any period it has today, nothing worse than hourly, already-hourly cells untouched; (c) service standards — routes ≤15 min stay ≤15 (frequent-network promise), waits at most double; (d) ridership — modeled boardings lost (headway elasticity −0.4) within a system-wide budget of 2/3.5/5% by scenario (the binding constraint); (e) fleet — satisfied by construction since headways never shorten (asserted).
   - Convert savings: vehicle-km → diesel (~50 L/100km) → CO₂ (2.68 kg/L) → $/year.
-- Run 3 scenarios (conservative/moderate/aggressive load factors); assert constraint satisfaction in code.
+- Run 3 scenarios (conservative/moderate/aggressive); assert constraint satisfaction in code.
+  *(Original constraint (b) "headway ≤ current headway" was a wording bug — it would forbid removing any trip; the intent, now implemented, is the availability + standards + ridership set above.)*
 
 ### Phase 5 — App (later milestone, after findings exist)
 - Rebuild `src/`: Leaflet map of route shapes colored by savings opportunity; route detail panel (headway before/after, estimated load profile, savings); citywide savings dashboard; methodology page (credibility for a city pitch). Reads `public/data/*.json`.

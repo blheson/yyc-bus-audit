@@ -285,6 +285,10 @@ def main() -> None:
           f"route_loads.parquet ({len(loads)})")
 
     # --- app export ---
+    def num(x) -> float:
+        """NaN-safe float for JSON (NaN is truthy, so `or 0` won't catch it)."""
+        return 0.0 if pd.isna(x) else float(x)
+
     routes_meta = t["routes"].set_index("route_id")
     by_route: dict[str, dict] = {}
     mod_wd = loads[(loads["scenario"] == "moderate") & (loads["day"] == "weekday")]
@@ -292,16 +296,15 @@ def main() -> None:
         days: dict[str, dict] = {}
         for (day, period), gp in gr.groupby(["day", "period"]):
             sc = gp.set_index("scenario")
-            trips_n = sc.loc["moderate", "trips"]
             days.setdefault(day, {})[period] = {
-                "trips": 0 if pd.isna(trips_n) else int(trips_n),
-                "boardings_day": round(float(sc.loc["moderate", "boardings"]), 1),
+                "trips": int(num(sc.loc["moderate", "trips"])),
+                "boardings_day": round(num(sc.loc["moderate", "boardings"]), 1),
                 "boardings_per_trip": round(
-                    float(sc.loc["moderate", "boardings_per_trip"] or 0), 1),
+                    num(sc.loc["moderate", "boardings_per_trip"]), 1),
                 "peak_load_range": [
-                    round(float(sc.loc["aggressive", "peak_load_per_trip"] or 0), 1),
-                    round(float(sc.loc["moderate", "peak_load_per_trip"] or 0), 1),
-                    round(float(sc.loc["conservative", "peak_load_per_trip"] or 0), 1),
+                    round(num(sc.loc["aggressive", "peak_load_per_trip"]), 1),
+                    round(num(sc.loc["moderate", "peak_load_per_trip"]), 1),
+                    round(num(sc.loc["conservative", "peak_load_per_trip"]), 1),
                 ],
             }
         by_route[str(routes_meta.loc[route_id, "route_short_name"])] = {
@@ -335,7 +338,7 @@ def main() -> None:
         ],
     }
     out = PUBLIC_DATA / "demand.json"
-    out.write_text(json.dumps(payload))
+    out.write_text(json.dumps(payload, allow_nan=False))
     print(f"wrote {out}")
 
     top = (mod_wd.groupby("route_id")["boardings"].sum()
