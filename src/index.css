@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Design tokens — light is default, dark via prefers-color-scheme.
+   Ramps validated with the palette validator (ordinal, both surfaces). */
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --surface-2: #f9f9f7;
+  --ink-1: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --hairline: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+  --brand: #c8102e; /* roundels + selected route only */
+  --brand-ink: #ffffff;
+
+  /* sequential blue: weekday vehicle-km (map lines), light -> dark */
+  --fuel-0: #86b6ef;
+  --fuel-1: #5598e7;
+  --fuel-2: #2a78d6;
+  --fuel-3: #1c5cab;
+  --fuel-4: #0d366b;
+
+  /* sequential aqua: service frequency (headway strips), light -> dark */
+  --freq-0: #4cc09a;
+  --freq-1: #2fae81;
+  --freq-2: #158a63;
+  --freq-3: #0e6b4b;
+  --freq-4: #084d35;
+
+  --status-warning: #b97900;
+  --status-serious: #c05023;
+  --ctrain: #9b9a94;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --surface-2: #0d0d0d;
+    --ink-1: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --fuel-0: #b7d3f6;
+    --fuel-1: #86b6ef;
+    --fuel-2: #5598e7;
+    --fuel-3: #2f7fdb;
+    --fuel-4: #1f63b7;
+
+    --freq-0: #7cdab6;
+    --freq-1: #4ec49b;
+    --freq-2: #2fae81;
+    --freq-3: #1f9469;
+    --freq-4: #127a54;
+
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --ctrain: #6d6c66;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: var(--surface-2);
+  font: inherit;
+}
+
+.leaflet-tooltip.route-tip {
+  background: var(--surface-1);
+  color: var(--ink-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.leaflet-tooltip.route-tip::before {
+  display: none;
+}
+
+/* keyboard focus */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--fuel-2);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

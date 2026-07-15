@@ -1,0 +1,9 @@
+pandas>=2.2
+pyarrow>=16
+requests>=2.32
+gtfs-realtime-bindings>=1.0.0
+protobuf>=4.25
+ortools>=9.10
+scikit-learn>=1.5
+shapely>=2.0
+pytest>=8.0
