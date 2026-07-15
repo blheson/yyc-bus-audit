@@ -12,8 +12,10 @@ function ViewTabs({ view, onView }) {
     ["network", "Network"],
     ["savings", "Savings"],
     ["methodology", "Methodology"],
-    ["collector", "Collector"],
   ];
+  // The collector drives a process on the analyst's machine via dev-server
+  // middleware; it has no backend on the static deployment.
+  if (import.meta.env.DEV) tabs.push(["collector", "Collector"]);
   return (
     <nav
       className="flex rounded-lg border p-0.5"
@@ -68,7 +70,9 @@ export default function App() {
   const [colorMode, setColorMode] = useState("savings");
   const [view, setView] = useState(() => {
     const v = new URLSearchParams(window.location.search).get("view");
-    return ["collector", "savings", "methodology"].includes(v) ? v : "network";
+    const valid = ["savings", "methodology"];
+    if (import.meta.env.DEV) valid.push("collector");
+    return valid.includes(v) ? v : "network";
   });
 
   useEffect(() => {

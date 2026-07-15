@@ -38,11 +38,12 @@ export const FLAG_INFO = {
 export { WEEKDAY_PERIODS };
 
 export async function loadTransitData() {
+  const base = import.meta.env.BASE_URL;
   const [supplyRes, geoRes, demandRes, optimizerRes] = await Promise.all([
-    fetch("/data/supply.json"),
-    fetch("/data/routes.geojson"),
-    fetch("/data/demand.json"),
-    fetch("/data/optimizer.json"),
+    fetch(`${base}data/supply.json`),
+    fetch(`${base}data/routes.geojson`),
+    fetch(`${base}data/demand.json`),
+    fetch(`${base}data/optimizer.json`),
   ]);
   if (!supplyRes.ok || !geoRes.ok) {
     throw new Error(
