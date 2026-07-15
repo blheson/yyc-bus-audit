@@ -6,18 +6,18 @@
     <string>com.calgarytransit.archiver</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/blessingudor/Desktop/development/copilot_app/pipeline/.venv/bin/python</string>
-        <string>/Users/blessingudor/Desktop/development/copilot_app/pipeline/archive_rt.py</string>
+        <string>/Users/blessingudor/Desktop/development/yyc-bus-audit/pipeline/.venv/bin/python</string>
+        <string>/Users/blessingudor/Desktop/development/yyc-bus-audit/pipeline/archive_rt.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/blessingudor/Desktop/development/copilot_app/pipeline</string>
+    <string>/Users/blessingudor/Desktop/development/yyc-bus-audit/pipeline</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/blessingudor/Desktop/development/copilot_app/data/rt/archiver.log</string>
+    <string>/Users/blessingudor/Desktop/development/yyc-bus-audit/data/rt/archiver.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/blessingudor/Desktop/development/copilot_app/data/rt/archiver.err.log</string>
+    <string>/Users/blessingudor/Desktop/development/yyc-bus-audit/data/rt/archiver.err.log</string>
 </dict>
 </plist>

@@ -18,7 +18,7 @@ Personal project: use AI/optimization on Calgary's open transit data to find bus
 ## Architecture
 
 ```
-copilot_app/
+yyc-bus-audit/
 ├── pipeline/                 # Python (new)
 │   ├── requirements.txt      # pandas, pyarrow, requests, gtfs-realtime-bindings, ortools, scikit-learn, shapely
 │   ├── ingest_gtfs.py        # download + parse CT_GTFS.zip
