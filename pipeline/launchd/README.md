@@ -1,8 +1,18 @@
-# Running the GTFS-RT archiver continuously
+# Running the GTFS-RT archiver
 
 The archiver polls Calgary Transit's realtime feeds every 60s and writes
 parquet files under `data/rt/YYYY-MM-DD/`. Storage is roughly 5–10 MB/day.
 Aim for **2+ weeks** of data before running `rt_metrics.py`.
+
+**The normal way to run it is the Collector tab in the app** (`npm run
+dev`, then Collector → Start collecting): start/stop buttons, live poll
+status, per-day progress, and the log — no invisible background setup.
+The collector runs as its own process, so it survives dev-server
+restarts, and stops from the same tab.
+
+Everything below is an *optional* alternative for always-on collection
+(auto-start at login/reboot without the dev server). Skip it unless you
+want that.
 
 ## Install (launchd keeps it running and restarts it after reboots/crashes)
 

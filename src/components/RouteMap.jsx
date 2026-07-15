@@ -34,25 +34,6 @@ function FitToSelection({ route }) {
   return null;
 }
 
-function MapDebug() {
-  const map = useMap();
-  useEffect(() => {
-    const t = setTimeout(() => {
-      console.log(
-        "MAPDEBUG",
-        JSON.stringify(map.getCenter()),
-        "zoom", map.getZoom(),
-        "size", JSON.stringify(map.getSize()),
-        "layers", Object.keys(map._layers).length,
-        "mediaDark", window.matchMedia("(prefers-color-scheme: dark)").matches,
-        "surface1", getComputedStyle(document.documentElement).getPropertyValue("--surface-1")
-      );
-    }, 2500);
-    return () => clearTimeout(t);
-  }, [map]);
-  return null;
-}
-
 function DeselectOnMapClick({ onDeselect }) {
   useMapEvents({
     click: (e) => {
@@ -94,7 +75,6 @@ export default function RouteMap({ routes, thresholds, selectedId, onSelect }) {
         url={tileUrl}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
-      <MapDebug />
       <DeselectOnMapClick onDeselect={() => onSelect(null)} />
       <FitToSelection route={selected} />
 

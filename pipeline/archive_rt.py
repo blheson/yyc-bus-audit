@@ -16,6 +16,8 @@ Usage: python archive_rt.py [--max-minutes N]   (N for test runs)
 
 import argparse
 import datetime as dt
+import json
+import os
 import signal
 import sys
 import time
@@ -28,10 +30,33 @@ from common import DATA_RT, RT_TRIP_UPDATES_URL, RT_VEHICLE_POSITIONS_URL, ensur
 
 POLL_SECS = 60
 FLUSH_SECS = 300
+STATUS_FILE = DATA_RT / "status.json"
 
 vp_buffer: list[dict] = []
 tu_buffer: list[dict] = []
 last_feed_ts = {"vp": 0, "tu": 0}
+
+# heartbeat for the Collector UI; rewritten after every poll and flush
+status = {
+    "pid": os.getpid(),
+    "started_at": None,
+    "stopped_at": None,
+    "last_poll_at": None,
+    "last_vp_vehicles": 0,
+    "last_tu_trips": 0,
+    "polls": 0,
+    "rows_flushed_session": 0,
+    "last_error": None,
+    "poll_secs": POLL_SECS,
+    "flush_secs": FLUSH_SECS,
+}
+
+
+def write_status() -> None:
+    try:
+        STATUS_FILE.write_text(json.dumps(status))
+    except OSError:
+        pass  # heartbeat must never kill the collector
 
 
 def fetch_feed(url: str) -> gtfs_realtime_pb2.FeedMessage:
@@ -111,7 +136,9 @@ def flush() -> None:
             pd.DataFrame(buf).to_parquet(day_dir / f"{name}_{stamp}.parquet",
                                          index=False)
             print(f"[{now:%H:%M:%S}] flushed {len(buf):>5} {name} rows", flush=True)
+            status["rows_flushed_session"] += len(buf)
             buf.clear()
+    write_status()
 
 
 def main() -> None:
@@ -123,6 +150,8 @@ def main() -> None:
 
     def on_term(signum, frame):
         flush()
+        status["stopped_at"] = dt.datetime.now().isoformat(timespec="seconds")
+        write_status()
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, on_term)
@@ -130,20 +159,31 @@ def main() -> None:
 
     started = time.time()
     last_flush = time.time()
+    status["started_at"] = dt.datetime.now().isoformat(timespec="seconds")
+    write_status()
     print(f"archiver started, polling every {POLL_SECS}s", flush=True)
     while True:
         poll_ts = int(time.time())
-        for label, fn in (("vp", collect_vehicle_positions),
-                          ("tu", collect_trip_updates)):
+        status["last_error"] = None
+        for label, fn, key in (("vp", collect_vehicle_positions, "last_vp_vehicles"),
+                               ("tu", collect_trip_updates, "last_tu_trips")):
             try:
-                fn(poll_ts)
+                n = fn(poll_ts)
+                if n:
+                    status[key] = n
             except Exception as exc:  # network blips must not kill the loop
+                status["last_error"] = f"{label}: {exc}"
                 print(f"[warn] {label} poll failed: {exc}", flush=True)
+        status["polls"] += 1
+        status["last_poll_at"] = dt.datetime.now().isoformat(timespec="seconds")
+        write_status()
         if time.time() - last_flush >= FLUSH_SECS:
             flush()
             last_flush = time.time()
         if args.max_minutes and (time.time() - started) / 60 >= args.max_minutes:
             flush()
+            status["stopped_at"] = dt.datetime.now().isoformat(timespec="seconds")
+            write_status()
             print("max duration reached, exiting")
             return
         time.sleep(POLL_SECS)

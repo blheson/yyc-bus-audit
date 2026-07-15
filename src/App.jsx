@@ -1,8 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
+import CollectorView from "./components/CollectorView";
 import RouteDetail from "./components/RouteDetail";
 import RouteList from "./components/RouteList";
 import RouteMap, { MapLegend } from "./components/RouteMap";
 import { filterRoutes, fmt, loadTransitData, sortRoutes } from "./lib/data";
+
+function ViewTabs({ view, onView }) {
+  const tabs = [
+    ["network", "Network"],
+    ["collector", "Collector"],
+  ];
+  return (
+    <nav
+      className="flex rounded-lg border p-0.5"
+      style={{ borderColor: "var(--border)" }}
+      aria-label="App section"
+    >
+      {tabs.map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onView(key)}
+          aria-current={view === key ? "page" : undefined}
+          className="rounded-md px-3 py-1 text-xs font-semibold"
+          style={
+            view === key
+              ? { background: "var(--ink-1)", color: "var(--surface-1)" }
+              : { color: "var(--ink-2)" }
+          }
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 function StatTile({ value, unit, label }) {
   return (
@@ -29,6 +61,11 @@ export default function App() {
   const [filterKey, setFilterKey] = useState("all");
   const [sortKey, setSortKey] = useState("fuel");
   const [selectedId, setSelectedId] = useState(null);
+  const [view, setView] = useState(() =>
+    new URLSearchParams(window.location.search).get("view") === "collector"
+      ? "collector"
+      : "network"
+  );
 
   useEffect(() => {
     loadTransitData()
@@ -84,7 +121,7 @@ export default function App() {
         className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b px-4 py-3"
         style={{ background: "var(--surface-1)", borderColor: "var(--hairline)" }}
       >
-        <div className="mr-auto">
+        <div>
           <h1
             className="text-base font-extrabold uppercase leading-none"
             style={{ color: "var(--ink-1)", letterSpacing: "0.12em" }}
@@ -94,6 +131,9 @@ export default function App() {
           <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
             Unofficial analysis of Calgary Transit open data · July 2026 schedule
           </p>
+        </div>
+        <div className="mr-auto">
+          <ViewTabs view={view} onView={setView} />
         </div>
         <StatTile
           value={fmt.format(sys.weekday.bus_vehicle_km)}
@@ -113,6 +153,11 @@ export default function App() {
         <StatTile value={flaggedCount} label="routes flagged" />
       </header>
 
+      {view === "collector" ? (
+        <div className="min-h-0 flex-1">
+          <CollectorView />
+        </div>
+      ) : (
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
         <aside
           className="max-h-[45vh] min-h-0 overflow-hidden border-b p-3 lg:max-h-none lg:border-b-0 lg:border-r"
@@ -151,6 +196,7 @@ export default function App() {
           )}
         </section>
       </div>
+      )}
     </div>
   );
 }
