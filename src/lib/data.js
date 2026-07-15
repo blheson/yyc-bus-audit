@@ -38,9 +38,11 @@ export const FLAG_INFO = {
 export { WEEKDAY_PERIODS };
 
 export async function loadTransitData() {
-  const [supplyRes, geoRes] = await Promise.all([
+  const [supplyRes, geoRes, demandRes, optimizerRes] = await Promise.all([
     fetch("/data/supply.json"),
     fetch("/data/routes.geojson"),
+    fetch("/data/demand.json"),
+    fetch("/data/optimizer.json"),
   ]);
   if (!supplyRes.ok || !geoRes.ok) {
     throw new Error(
@@ -49,6 +51,9 @@ export async function loadTransitData() {
   }
   const supply = await supplyRes.json();
   const geo = await geoRes.json();
+  // Later pipeline stages; the network view still works without them.
+  const demand = demandRes.ok ? await demandRes.json() : null;
+  const optimizer = optimizerRes.ok ? await optimizerRes.json() : null;
 
   // geometry per route_id, flipped to Leaflet's [lat, lng]
   const paths = new Map();
@@ -74,15 +79,33 @@ export async function loadTransitData() {
     }
   }
 
+  // conservative-scenario optimizer changes per route short name,
+  // annualized with the same day weights the pipeline uses
+  const dayWeights = supply.assumptions.annual_day_weights;
+  const changesByRoute = new Map();
+  for (const c of optimizer?.changes_conservative || []) {
+    if (!changesByRoute.has(c.route)) changesByRoute.set(c.route, []);
+    changesByRoute.get(c.route).push(c);
+  }
+
   const routes = supply.routes
     .filter((r) => r.weekday && paths.has(r.route_id))
-    .map((r) => ({
-      ...r,
-      path: paths.get(r.route_id),
-      overlaps: (overlapsByRoute.get(r.route_id) || []).sort(
-        (a, b) => b.overlapKm - a.overlapKm
-      ),
-    }));
+    .map((r) => {
+      const changes = changesByRoute.get(r.short_name) || [];
+      return {
+        ...r,
+        path: paths.get(r.route_id),
+        overlaps: (overlapsByRoute.get(r.route_id) || []).sort(
+          (a, b) => b.overlapKm - a.overlapKm
+        ),
+        demand: demand?.routes?.[r.short_name] || null,
+        changes,
+        savedKmYear: changes.reduce(
+          (sum, c) => sum + c.saved_km_day * (dayWeights[c.day] || 0),
+          0
+        ),
+      };
+    });
 
   // quintile thresholds over bus vehicle-km for the map's sequential ramp
   const kms = routes
@@ -92,7 +115,24 @@ export async function loadTransitData() {
   const q = (p) => kms[Math.min(kms.length - 1, Math.floor(p * kms.length))];
   const thresholds = [q(0.2), q(0.4), q(0.6), q(0.8)];
 
-  return { supply, routes, thresholds };
+  // quintiles over routes with any proposed savings, for the violet ramp
+  const saved = routes
+    .filter((r) => r.is_bus && r.savedKmYear > 0)
+    .map((r) => r.savedKmYear)
+    .sort((a, b) => a - b);
+  const qs = (p) =>
+    saved.length ? saved[Math.min(saved.length - 1, Math.floor(p * saved.length))] : 0;
+  const savingsThresholds = [qs(0.2), qs(0.4), qs(0.6), qs(0.8)];
+
+  return { supply, demand, optimizer, routes, thresholds, savingsThresholds };
+}
+
+// 0 (lightest) .. 4 (darkest) on the violet ramp; null = no change proposed
+export function savingsStep(route, savingsThresholds) {
+  if (!route.savedKmYear) return null;
+  let step = 0;
+  for (const t of savingsThresholds) if (route.savedKmYear > t) step += 1;
+  return step;
 }
 
 // 0 (lightest) .. 4 (darkest) on the blue ramp
@@ -123,6 +163,8 @@ export function sortRoutes(routes, sortKey) {
   const copy = [...routes];
   if (sortKey === "fuel") {
     copy.sort((a, b) => b.weekday.vehicle_km - a.weekday.vehicle_km);
+  } else if (sortKey === "savings") {
+    copy.sort((a, b) => b.savedKmYear - a.savedKmYear);
   } else if (sortKey === "number") {
     copy.sort(
       (a, b) =>
@@ -142,6 +184,7 @@ export function sortRoutes(routes, sortKey) {
 
 export const FILTERS = {
   all: { label: "All", test: () => true },
+  changed: { label: "Has proposal", test: (r) => r.changes.length > 0 },
   flagged: { label: "Flagged", test: (r) => (r.flags || []).length > 0 },
   hourly: {
     label: "Hourly",

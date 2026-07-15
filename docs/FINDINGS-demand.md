@@ -67,9 +67,11 @@ per trip × a peak-load factor α (0.55 conservative / 0.45 moderate /
   asserted directly against `peak_load_per_trip`.
 - Run the optimizer per scenario; report the **conservative** savings as
   the headline and the spread as the uncertainty band.
-- The availability constraint ("headway never worse than today") is the
-  main shield against model error on thin routes: worst case, a route
-  that is busier than modeled keeps its current service.
+- The optimizer's guardrails (no stop loses service, frequent network
+  stays frequent, waits at most double, system ridership-loss budget) are
+  the shield against model error on thin routes: worst case, a route that
+  is busier than modeled gets its frequency back in the next review cycle
+  — it never loses service entirely.
 
 ## Method notes / limitations
 

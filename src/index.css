@@ -29,6 +29,13 @@
   --freq-3: #0e6b4b;
   --freq-4: #084d35;
 
+  /* sequential violet: annual savings opportunity (map lines), light -> dark */
+  --save-0: #bf9ae6;
+  --save-1: #a674dd;
+  --save-2: #8b4fcb;
+  --save-3: #6d35a4;
+  --save-4: #471f6e;
+
   --status-warning: #b97900;
   --status-serious: #c05023;
   --ctrain: #9b9a94;
@@ -56,6 +63,12 @@
     --freq-2: #2fae81;
     --freq-3: #1f9469;
     --freq-4: #127a54;
+
+    --save-0: #dcc8f3;
+    --save-1: #bf9ae6;
+    --save-2: #a674dd;
+    --save-3: #8f58d3;
+    --save-4: #7440b3;
 
     --status-warning: #fab219;
     --status-serious: #ec835a;

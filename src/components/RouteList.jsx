@@ -148,6 +148,7 @@ export default function RouteList({
             }}
           >
             <option value="fuel">most km first</option>
+            <option value="savings">most savings first</option>
             <option value="headway">worst headway first</option>
             <option value="number">route number</option>
           </select>
