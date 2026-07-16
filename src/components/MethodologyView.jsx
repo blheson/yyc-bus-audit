@@ -42,6 +42,29 @@ export default function MethodologyView() {
           </strong>
         </p>
 
+        <p className="max-w-2xl text-[13px] leading-relaxed" style={{ color: "var(--ink-2)" }}>
+          The full story — including why the first optimizer run was wrong —
+          is in{" "}
+          <a
+            href="https://github.com/blheson/yyc-bus-audit/blob/master/docs/WRITEUP.md"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--ink-1)", textDecoration: "underline" }}
+          >
+            the write-up
+          </a>
+          ; the pipeline, data exports, and this app are open source at{" "}
+          <a
+            href="https://github.com/blheson/yyc-bus-audit"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--ink-1)", textDecoration: "underline" }}
+          >
+            github.com/blheson/yyc-bus-audit
+          </a>
+          .
+        </p>
+
         <Section title="Data sources (Open Calgary)">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">

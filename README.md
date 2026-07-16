@@ -1,13 +1,19 @@
-# Calgary Bus Route Optimizer
+# YYC Bus Audit — Calgary Bus Route Optimizer
 
-Personal project: analyze Calgary Transit's open data to find schedule
-changes that cut fuel use (vehicle-kilometres) **without reducing service
-availability** — and present the findings on an interactive map.
+**Calgary's bus network could save ~10% of its vehicle-kilometres —
+≈5.0M km ≈ 2.5M litres of diesel ≈ 6,700 t CO₂ ≈ $4.1M per year — with
+modeled ridership impact under 2% and no stop losing service in any
+period it has today.** (Conservative scenario of three; demand is modeled
+from open data, not measured — see the write-up for limitations.)
 
-**Live map:** https://blheson.github.io/yyc-bus-audit/
+An unofficial, fully reproducible analysis of Calgary Transit open data:
+a Python pipeline (GTFS supply analysis → calibrated demand model →
+CP-SAT frequency optimizer) presented on an interactive map.
 
-See `PLAN.md` for the full approach, `docs/WRITEUP.md` for the public
-write-up, and `docs/FINDINGS-*.md` for detailed results.
+- **Live map:** https://blheson.github.io/yyc-bus-audit/
+- **Write-up:** [docs/WRITEUP.md](docs/WRITEUP.md) — the argument, the method, and what it does *not* say
+- **Detailed findings:** [supply](docs/FINDINGS-supply.md) · [demand](docs/FINDINGS-demand.md) · [optimizer](docs/FINDINGS-optimizer.md)
+- **Plan / roadmap:** [PLAN.md](PLAN.md)
 
 ## Layout
 
