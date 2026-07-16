@@ -10,11 +10,11 @@ const WEEKDAY_PERIODS = [
 
 export const PERIOD_NAMES = {
   early_late: "Early / late night",
-  am_peak: "AM peak (6–9)",
-  midday: "Midday (9–15)",
-  pm_peak: "PM peak (15–18)",
-  evening: "Evening (18–24)",
-  daytime: "Daytime (6–18)",
+  am_peak: "AM peak (6-9)",
+  midday: "Midday (9-15)",
+  pm_peak: "PM peak (15-18)",
+  evening: "Evening (18-24)",
+  daytime: "Daytime (6-18)",
 };
 
 export const FLAG_INFO = {
