@@ -202,7 +202,7 @@ export function ColorModeToggle({ colorMode, onColorMode }) {
   ];
   return (
     <div
-      className="absolute left-4 top-4 z-[1000] flex rounded-lg border p-0.5 text-xs shadow-sm"
+      className="absolute left-14 top-4 z-[1000] flex rounded-lg border p-0.5 text-xs shadow-sm"
       style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
       role="group"
       aria-label="Color routes by"
