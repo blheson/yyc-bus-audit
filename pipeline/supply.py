@@ -90,6 +90,8 @@ def trip_stats(trips: pd.DataFrame, stop_times: pd.DataFrame,
         end_secs=("arrival_secs", "max"),
         n_stops=("stop_id", "size"),
     )
+    
+    # Compute trip length and duration, and wrap start time to 0-24h
     ts = trips.merge(agg, on="trip_id")
     ts["length_km"] = ts["shape_id"].map(shape_len)
     ts["duration_s"] = ts["end_secs"] - ts["start_secs"]

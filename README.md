@@ -13,6 +13,7 @@ CP-SAT frequency optimizer) presented on an interactive map.
 - **Live map:** https://blheson.github.io/yyc-bus-audit/
 - **Write-up:** [docs/WRITEUP.md](docs/WRITEUP.md) — the argument, the method, and what it does *not* say
 - **Detailed findings:** [supply](docs/FINDINGS-supply.md) · [demand](docs/FINDINGS-demand.md) · [optimizer](docs/FINDINGS-optimizer.md)
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pipeline fits together, with a system diagram
 - **Plan / roadmap:** [PLAN.md](PLAN.md)
 
 ## Layout
