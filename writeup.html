@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calgary is redesigning its bus network. Here's what the open data says the math looks like. — YYC Bus Audit</title>
+<meta name="description" content="An open, reproducible model of Calgary's bus network built entirely from public data — with an optimizer that finds ~10% of bus vehicle-kilometres (~$4.1M/yr, ~6,700 t CO₂) that could be saved or reinvested, without any stop losing service.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://blheson.github.io/yyc-bus-audit/writeup.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Calgary is redesigning its bus network. Here's what the open data says the math looks like.">
+<meta property="og:description" content="An open, reproducible model of Calgary's bus network — a constraint solver finds ~10% of bus vehicle-km (~$4.1M/yr, ~6,700 t CO₂) that could be saved or reinvested, with no stop losing service. Built entirely from Open Calgary data.">
+<meta property="og:url" content="https://blheson.github.io/yyc-bus-audit/writeup.html">
+<meta property="og:image" content="https://blheson.github.io/yyc-bus-audit/og-writeup.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+/* ============ tokens — inherited from the YYC Bus Audit app ============ */
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --surface-2: #f9f9f7;
+  --ink-1: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --hairline: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+  --brand: #c8102e;          /* Calgary Transit red — roundel only */
+  --brand-ink: #ffffff;
+
+  /* sequential violet — savings (validated, both surfaces) */
+  --save-0: #bf9ae6;
+  --save-1: #a674dd;
+  --save-2: #8b4fcb;
+  --save-3: #6d35a4;
+  --save-4: #471f6e;
+
+  /* sequential blue — supply / vehicle-km */
+  --fuel-2: #2a78d6;
+
+  --mark-muted: #898781;     /* de-emphasis mark (rejected runs, "today" ticks) */
+
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Iowan Old Style", Charter, Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --surface-2: #0d0d0d;
+    --ink-1: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --save-0: #dcc8f3;
+    --save-1: #bf9ae6;
+    --save-2: #a674dd;
+    --save-3: #8f58d3;
+    --save-4: #7440b3;
+
+    --fuel-2: #5598e7;
+    --mark-muted: #898781;
+  }
+}
+
+/* ============ base ============ */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface-2);
+  color: var(--ink-1);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+a { color: inherit; text-decoration-color: var(--save-2); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--save-2); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--fuel-2); outline-offset: 2px; border-radius: 2px; }
+::selection { background: var(--save-0); color: var(--ink-1); }
+
+.wrap { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
+
+/* ============ header ============ */
+header.masthead { padding: 3.5rem 0 0; }
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.eyebrow .roundel {
+  width: 1.35rem; height: 1.35rem; border-radius: 50%;
+  background: var(--brand); color: var(--brand-ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--sans); font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0;
+}
+h1 {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(1.85rem, 5.2vw, 2.9rem);
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  margin: 1.1rem 0 0;
+  text-wrap: balance;
+}
+.standfirst {
+  font-size: clamp(1.05rem, 2.4vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 1.25rem 0 0;
+  max-width: 40rem;
+}
+.byline {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  margin-top: 1.5rem;
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem;
+}
+.byline strong { color: var(--ink-2); font-weight: 500; }
+
+/* signature: the headway strip — service thinning, drawn as departures */
+.headway-rule { margin: 2.2rem 0 0; }
+.headway-rule svg { display: block; width: 100%; height: 22px; }
+
+.linkrow {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  margin: 1.6rem 0 0;
+}
+.linkrow a {
+  font-family: var(--sans); font-size: 0.86rem; font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+}
+.linkrow a:hover { border-color: var(--save-2); color: var(--save-2); }
+.linkrow a .ext { color: var(--ink-3); font-weight: 400; }
+
+/* ============ stat band ============ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin: 2.4rem 0 0.5rem;
+}
+.stat {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem 0.8rem;
+}
+.stat .v {
+  font-family: var(--sans); font-weight: 650;
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.stat .v em { font-style: normal; color: var(--save-2); }
+.stat .l {
+  font-family: var(--sans); font-size: 0.76rem;
+  color: var(--ink-3); margin-top: 0.35rem; line-height: 1.35;
+}
+.stats-caption {
+  font-family: var(--mono); font-size: 0.76rem; color: var(--ink-3);
+  margin: 0.7rem 0 0;
+}
+@media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* ============ contents ============ */
+nav.toc {
+  margin: 2.6rem 0 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: 1rem 0;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  columns: 2; column-gap: 2.5rem;
+}
+nav.toc a { display: block; padding: 0.22rem 0; text-decoration: none; color: var(--ink-2); }
+nav.toc a:hover { color: var(--save-2); }
+nav.toc a .n { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-3); margin-right: 0.5rem; }
+@media (max-width: 560px) { nav.toc { columns: 1; } }
+
+/* ============ article ============ */
+article { padding-bottom: 2rem; }
+section { margin-top: 3.2rem; }
+.kicker {
+  font-family: var(--mono); font-size: 0.74rem;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--save-3);
+}
+@media (prefers-color-scheme: dark) { .kicker { color: var(--save-1); } }
+h2 {
+  font-family: var(--sans); font-weight: 750;
+  font-size: clamp(1.35rem, 3.4vw, 1.7rem);
+  letter-spacing: -0.018em; line-height: 1.2;
+  margin: 0.45rem 0 1rem;
+  text-wrap: balance;
+}
+h3 {
+  font-family: var(--sans); font-weight: 700; font-size: 1.02rem;
+  letter-spacing: -0.008em; margin: 1.8rem 0 0.5rem;
+}
+p { margin: 0 0 1.05rem; }
+strong { font-weight: 650; }
+ul { padding-left: 1.2rem; margin: 0 0 1.05rem; }
+li { margin-bottom: 0.45rem; }
+li::marker { color: var(--save-2); }
+
+.lede::first-letter {
+  font-family: var(--sans); font-weight: 800;
+  font-size: 3.1em; line-height: 0.85;
+  float: left; padding: 0.08em 0.12em 0 0;
+  color: var(--save-3);
+}
+@media (prefers-color-scheme: dark) { .lede::first-letter { color: var(--save-1); } }
+
+/* inline route badge — bus signage */
+.route {
+  display: inline-block;
+  font-family: var(--sans); font-weight: 700; font-size: 0.78em;
+  background: var(--ink-1); color: var(--surface-1);
+  border-radius: 5px;
+  padding: 0.08em 0.45em 0.12em;
+  vertical-align: baseline;
+  letter-spacing: 0.02em;
+}
+
+/* pull quote */
+.pull {
+  border-left: 3px solid var(--save-2);
+  margin: 1.8rem 0;
+  padding: 0.2rem 0 0.2rem 1.2rem;
+  font-family: var(--sans); font-weight: 650;
+  font-size: 1.18rem; line-height: 1.45; letter-spacing: -0.012em;
+  color: var(--ink-1);
+}
+
+/* aside note */
+.note {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  margin: 1.4rem 0;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+}
+.note .tag {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-3);
+  display: block; margin-bottom: 0.3rem;
+}
+
+/* ============ figures ============ */
+figure.viz {
+  margin: 1.8rem 0;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem 1rem;
+}
+figure.viz .fig-title {
+  font-family: var(--sans); font-weight: 650; font-size: 0.95rem;
+  letter-spacing: -0.005em;
+}
+figure.viz .fig-sub {
+  font-family: var(--sans); font-size: 0.8rem; color: var(--ink-3);
+  margin-top: 0.15rem;
+}
+figure.viz svg { display: block; width: 100%; height: auto; margin-top: 0.9rem; }
+figure.viz figcaption {
+  font-size: 0.84rem; color: var(--ink-2);
+  border-top: 1px solid var(--hairline);
+  margin-top: 1rem; padding-top: 0.7rem;
+  font-family: var(--sans); line-height: 1.5;
+}
+.svg-label   { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.svg-label-strong { font-family: var(--sans); font-size: 13px; font-weight: 650; fill: var(--ink-1); }
+.svg-value   { font-family: var(--sans); font-size: 13px; font-weight: 650; fill: var(--ink-1); }
+.svg-tick    { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-3); }
+.svg-grid    { stroke: var(--hairline); stroke-width: 1; }
+
+/* meter */
+.meter { margin: 1.4rem 0; }
+.meter .m-label { font-family: var(--sans); font-size: 0.85rem; color: var(--ink-2); margin-bottom: 0.4rem; }
+.meter .m-label strong { color: var(--ink-1); }
+.meter .m-track {
+  height: 10px; border-radius: 5px;
+  background: color-mix(in oklab, var(--save-0) 40%, var(--surface-1));
+  overflow: hidden;
+}
+.meter .m-fill { height: 100%; width: 33.4%; background: var(--save-2); border-radius: 5px 0 0 5px; }
+
+/* ============ tables ============ */
+.tablewrap { overflow-x: auto; margin: 1.6rem 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); }
+table { border-collapse: collapse; width: 100%; font-family: var(--sans); font-size: 0.88rem; }
+caption {
+  text-align: left; font-family: var(--sans); font-weight: 650; font-size: 0.95rem;
+  padding: 1rem 1.1rem 0.2rem; color: var(--ink-1);
+}
+th, td { text-align: right; padding: 0.55rem 0.9rem; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th {
+  font-weight: 600; font-size: 0.78rem; color: var(--ink-3);
+  border-bottom: 1px solid var(--hairline);
+  padding-top: 0.8rem;
+}
+tbody td { border-bottom: 1px solid var(--hairline); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: none; }
+tbody th { font-weight: 600; color: var(--ink-1); border-bottom: 1px solid var(--hairline); }
+tbody tr:last-child th { border-bottom: none; }
+tr.hl td, tr.hl th { color: var(--ink-1); background: color-mix(in oklab, var(--save-0) 16%, var(--surface-1)); }
+.tablenote { font-family: var(--sans); font-size: 0.8rem; color: var(--ink-3); padding: 0.6rem 1.1rem 0.9rem; margin: 0; }
+
+/* ============ footer ============ */
+footer.colophon {
+  border-top: 1px solid var(--hairline);
+  margin-top: 3.5rem;
+  padding: 2rem 0 4rem;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+footer.colophon h2 { font-size: 1.05rem; margin: 0 0 0.8rem; }
+footer.colophon code { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-3); }
+footer.colophon p { margin-bottom: 0.8rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+@media print {
+  body { background: #fff; }
+  .linkrow a { border: none; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow"><span class="roundel" aria-hidden="true">YYC</span> YYC Bus Audit · A civic data project</p>
+  <h1>Calgary is redesigning its bus network. Here&rsquo;s what the open data says the math looks like.</h1>
+  <p class="standfirst">An open, reproducible model of Calgary&rsquo;s bus network built entirely from public data — with a constraint solver that finds about 10% of bus vehicle&#8209;kilometres that could be saved or reinvested, without any stop losing service. This is the full story: the method, the numbers, and the one big mistake that taught me more than the result did.</p>
+  <div class="byline">
+    <span><strong>Blessing Udor</strong></span>
+    <span>July 2026</span>
+    <span>~14 min read</span>
+  </div>
+
+  <div class="headway-rule" aria-hidden="true">
+    <!-- signature: departures thinning out — the whole project in one strip -->
+    <svg viewBox="0 0 800 22" preserveAspectRatio="none">
+      <line x1="0" y1="11" x2="800" y2="11" stroke="var(--hairline)" stroke-width="1"/>
+      <g fill="var(--save-2)">
+        <rect x="0" y="3" width="3" height="16" rx="1.5"/><rect x="34" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="68" y="3" width="3" height="16" rx="1.5"/><rect x="102" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="140" y="3" width="3" height="16" rx="1.5"/><rect x="182" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="228" y="3" width="3" height="16" rx="1.5"/><rect x="280" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="340" y="3" width="3" height="16" rx="1.5"/><rect x="410" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="492" y="3" width="3" height="16" rx="1.5"/><rect x="590" y="3" width="3" height="16" rx="1.5"/>
+        <rect x="710" y="3" width="3" height="16" rx="1.5"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="linkrow">
+    <a href="https://blheson.github.io/yyc-bus-audit/">Explore the live map <span class="ext">↗</span></a>
+    <a href="https://github.com/blheson/yyc-bus-audit">Code &amp; pipeline <span class="ext">↗</span></a>
+  </div>
+
+  <div class="stats" role="group" aria-label="Headline findings, conservative scenario">
+    <div class="stat"><div class="v"><em>5.0M</em></div><div class="l">vehicle-kilometres saved per year — 10.4% of all bus veh-km</div></div>
+    <div class="stat"><div class="v">$4.1M</div><div class="l">operating cost per year, at fleet-average diesel</div></div>
+    <div class="stat"><div class="v">6,700&nbsp;t</div><div class="l">CO₂ per year — about 2.5M litres of diesel</div></div>
+    <div class="stat"><div class="v">&lt;2%</div><div class="l">modeled ridership impact, enforced as a hard cap</div></div>
+  </div>
+  <p class="stats-caption">conservative scenario of three · demand modeled, not measured · every constraint asserted in code</p>
+
+  <nav class="toc" aria-label="Contents">
+    <a href="#moment"><span class="n">01</span>The moment</a>
+    <a href="#missing"><span class="n">02</span>The missing half of the argument</a>
+    <a href="#headline"><span class="n">03</span>The headline, uncertainty attached</a>
+    <a href="#supply"><span class="n">04</span>Stage 1 — what Calgary actually runs</a>
+    <a href="#demand"><span class="n">05</span>Stage 2 — modeling demand, honestly</a>
+    <a href="#optimizer"><span class="n">06</span>Stage 3 — the optimizer and its leash</a>
+    <a href="#mistake"><span class="n">07</span>The 50% mistake</a>
+    <a href="#where"><span class="n">08</span>Where the savings actually live</a>
+    <a href="#upside"><span class="n">09</span>The savings I didn&rsquo;t count</a>
+    <a href="#limits"><span class="n">10</span>What this does <em>not</em> say</a>
+    <a href="#next"><span class="n">11</span>Before and after August 31</a>
+    <a href="#you"><span class="n">12</span>If you&rsquo;re reading this at city hall</a>
+  </nav>
+</header>
+
+<article>
+
+<section id="moment">
+  <p class="kicker">01 · The moment</p>
+  <h2>The biggest rebalancing of Calgary&rsquo;s bus network in years starts August&nbsp;31</h2>
+  <p class="lede">Calgary Transit is in the middle of the largest redesign of its bus network in years. The <a href="https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html">Transit Service Reviews</a> for North Central, Saddletowne, and Fish Creek roll out finalized route changes starting <strong>August 31, 2026</strong>, with Fish Creek phases following in December 2026 and March 2027. As part of the same rebalancing, <a href="https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/">most remaining express routes are being phased out</a>.</p>
+  <p>The city&rsquo;s stated rationale is worth quoting, because this whole project hangs off it: express routes are &ldquo;resource-intensive and serve a relatively limited number of customers in one direction,&rdquo; and those service hours buy more when reallocated into frequent, all-day, two-way service on core routes.</p>
+  <p>That is a resource-allocation argument, and I think it&rsquo;s the right one. But so far it has been made <em>qualitatively</em>. The public materials contain no dollar figures, no ridership-impact estimates, and no published model that residents, advocates, or councillors can inspect, question, or argue with.</p>
+</section>
+
+<section id="missing">
+  <p class="kicker">02 · Why I built this</p>
+  <h2>The missing quantitative half of a public conversation</h2>
+  <p>So I built the missing half — using only data the city itself publishes on <a href="https://data.calgary.ca">Open Calgary</a>. A Python pipeline reads the GTFS schedule and computes exactly what the network runs. A demand model, calibrated to Calgary&rsquo;s published ridership totals, estimates where those buses are full and where they aren&rsquo;t. And a constraint solver searches over bus frequencies for changes that save resources while honoring a set of explicit, inspectable service guarantees.</p>
+  <p>Two things this project is <em>not</em>. It is not an attempt to second-guess Calgary Transit&rsquo;s planners, who have ridership data and operational constraints this model can&rsquo;t see. And it is not a case for cutting service — the same saved kilometres can be read as a <strong>reallocation dividend</strong>: service hours that could buy higher frequency where buses are full, which is exactly the trade the city&rsquo;s own express-route decision is making.</p>
+  <p>What it <em>is</em>: a demonstration of what the trade-off space looks like when the reasoning is open. Every number in this post is generated by code you can run, from data anyone can download, under constraints you can read — and disagree with.</p>
+  <p>The model reaches, independently, the same directional conclusion the city did: Calgary&rsquo;s bus network carries real slack in its thinnest service, and modest, guardrailed frequency changes free up a lot of resources at a small, bounded cost. Here is how much, and how sure we can be.</p>
+</section>
+
+<section id="headline">
+  <p class="kicker">03 · The result</p>
+  <h2>The headline, with its uncertainty attached</h2>
+  <p><strong>Calgary&rsquo;s bus network could save about 5.0 million vehicle-kilometres per year — roughly 10% of all bus vehicle-km, ≈2.5 million litres of diesel, ≈6,700 tonnes of CO₂, ≈$4.1M annually — with modeled ridership impact under 2% and no stop losing service in any period it has today.</strong></p>
+  <p>That is the <em>conservative</em> scenario of three. Because the demand model is built on proxies rather than passenger counts, I run everything under three demand assumptions and report the spread as the honest uncertainty band:</p>
+
+  <div class="tablewrap">
+    <table>
+      <caption>Three scenarios, one optimizer</caption>
+      <thead>
+        <tr><th>Scenario</th><th>Saved veh-km/yr</th><th>% of bus veh-km</th><th>Diesel L/yr</th><th>t CO₂/yr</th><th>$/yr</th><th>Modeled ridership impact</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hl"><th>Conservative</th><td>5.03M</td><td>10.4%</td><td>2.51M</td><td>6,739</td><td>$4.1M</td><td>−2.0%</td></tr>
+        <tr><th>Moderate</th><td>6.85M</td><td>14.2%</td><td>3.43M</td><td>9,186</td><td>$5.7M</td><td>−3.5%</td></tr>
+        <tr><th>Aggressive</th><td>8.02M</td><td>16.6%</td><td>4.01M</td><td>10,743</td><td>$6.6M</td><td>−5.0%</td></tr>
+      </tbody>
+    </table>
+    <p class="tablenote">Ridership impact is a hard optimizer constraint per scenario, not an observed outcome. Dollar figures use a fleet-average 0.5&nbsp;L/km diesel factor at ~$1.65/L.</p>
+  </div>
+
+  <p>Demand is <strong>modeled, not measured</strong> — Calgary publishes no per-stop or per-route ridership — which is why this write-up reports ranges and leads with the conservative bound. The limitations section near the end is not fine print; it&rsquo;s half the point of publishing this at all.</p>
+</section>
+
+<section id="supply">
+  <p class="kicker">04 · Stage 1 · <code style="font-family:var(--mono);font-size:0.8em;text-transform:none;letter-spacing:0">supply.py</code></p>
+  <h2>What Calgary actually runs</h2>
+  <p>The foundation is the static GTFS schedule — the machine-readable timetable Calgary Transit publishes for trip planners. Parsed and measured (July 2026 regular service): <strong>10,077 bus trips per weekday</strong> covering <strong>146,691 vehicle-kilometres</strong>, which annualizes to about <strong>48.4 million bus vehicle-km</strong> — roughly 24.2 million litres of diesel and 64,800 tonnes of CO₂ at a fleet-average factor. The unit economics that matter for everything downstream: <strong>every 1% of vehicle-km is worth about 242,000 litres of diesel and roughly $400k a year.</strong></p>
+  <p>Two findings from this stage shaped the whole project:</p>
+  <ul>
+    <li><strong>The &ldquo;empty hourly bus&rdquo; is mostly a myth — and a distraction.</strong> Only 6 of Calgary&rsquo;s 145 weekday bus routes run hourly-or-worse midday, and together they account for just <strong>1.5% of system vehicle-km</strong>. Cutting the routes that <em>feel</em> emptiest saves almost nothing and hurts the riders who depend on them most. If you want savings, they are not where the intuition points.</li>
+    <li><strong>The real candidates are long and mid-frequency.</strong> 27 routes are longer than 15&nbsp;km and run every 30 minutes or better — long enough that each trip burns real fuel, frequent enough that a headway change multiplies across many daily trips. Whether they can be trimmed depends entirely on demand, which the schedule alone can&rsquo;t tell you. Hence stage two.</li>
+  </ul>
+  <p>The supply analysis also surfaced a lead I&rsquo;ll come back to: <strong>62 routes share at least half of their alignment with another route</strong> — the largest overlapping corridors run to 23&nbsp;km — and the slowest routes in the city (<span class="route">7</span>&nbsp;<span class="route">17</span>&nbsp;<span class="route">48</span>&nbsp;<span class="route">6</span>) crawl at 15–16&nbsp;km/h median, burning disproportionate fuel per kilometre of coverage.</p>
+</section>
+
+<section id="demand">
+  <p class="kicker">05 · Stage 2 · <code style="font-family:var(--mono);font-size:0.8em;text-transform:none;letter-spacing:0">demand_model.py</code></p>
+  <h2>Modeling demand when the city publishes none</h2>
+  <p>Here is the awkward fact at the centre of this project: <strong>Calgary publishes no per-stop or per-route ridership data.</strong> Not on the open data portal, not in the transit reports. The city publishes one citywide monthly boarding total. Calgary Transit&rsquo;s buses count their passengers — automatic passenger counters exist — but that data stays internal.</p>
+  <p>So the demand layer is a <strong>calibrated structural model</strong>, and I&rsquo;ll describe it plainly so you can judge it. Each bus stop&rsquo;s demand potential is built from four open ingredients:</p>
+  <ul>
+    <li><strong>Population within 400&nbsp;m</strong> of the stop (2021 federal census by community, shared between nearby stops so no resident is double-counted);</li>
+    <li><strong>the community&rsquo;s transit mode share</strong> (2016 civic census — the last one that asked);</li>
+    <li><strong>a downtown-attraction kernel</strong> (an employment proxy decaying over ~3&nbsp;km, standing in for the job density the census can&rsquo;t give per-block); and</li>
+    <li><strong>an LRT-feeder bonus</strong> (+35% within 600&nbsp;m of a CTrain station, because feeder stops punch above their walk-shed).</li>
+  </ul>
+  <p>Those potentials are spread across the day using canonical transit demand curves, then scaled so the citywide total exactly matches Calgary Transit&rsquo;s published figure: <strong>224,517 bus boardings per weekday</strong> (mean of the published 2024–25 monthly totals). The totals are anchored to reality; the <em>spatial distribution</em> is an estimate — which is why every load is carried through as three scenarios rather than one point claim.</p>
+  <h3>Does it pass a sanity check?</h3>
+  <p>The one independent measurement available is the downtown cordon count. The model puts 10.6% of boardings (~23,800/day) at stops within 1.5&nbsp;km of the CBD cordon centroid; the 2023 cordon counted ~105k inbound transit occupants a day <em>including CTrain</em>, which carries more than half of transit volume. Same order of magnitude — consistent, not proof. I flag it exactly that way.</p>
+  <h3>What the model says</h3>
+  <ul>
+    <li><strong>The 27 flagged routes are as thin as the schedule suggested.</strong> Median modeled midday peak load: <strong>about 14 passengers on a ~55-seat bus</strong> — under the <em>conservative</em> scenario. 21 of the 27 stay under 20. These routes carry real but thin demand: candidates for frequency trades, never for elimination.</li>
+    <li><strong>The headroom is broad, not local.</strong> 88% of weekday route-period cells have a conservative peak load under 28 passengers — half a bus&rsquo;s seated capacity. That&rsquo;s the size of the <em>opportunity space</em>, not the savings: policy floors and guardrails bind long before capacity does.</li>
+    <li><strong>Nothing approaches full.</strong> No modeled midday load comes near seated capacity — which matches what Calgary&rsquo;s midday actually looks like from the sidewalk.</li>
+  </ul>
+  <p>One design decision deserves its own paragraph, because it becomes the villain of the next section. The model is deliberately <strong>supply-blind</strong>: it contains no frequency term, because a demand model that rewards frequency would let the optimizer justify cuts by the very cuts it makes — a circularity trap. The cost of that choice is real: routes whose ridership comes from <em>being frequent</em> — the MAX BRT lines, the trunk grid — get under-ranked, since their few stops sum small walk-shed catchments. I knew this was the model&rsquo;s weakest point. I found out how weak the hard way.</p>
+</section>
+
+<section id="optimizer">
+  <p class="kicker">06 · Stage 3 · <code style="font-family:var(--mono);font-size:0.8em;text-transform:none;letter-spacing:0">optimize.py</code></p>
+  <h2>The optimizer, and the leash it runs on</h2>
+  <p>The final stage is a constraint solver — Google OR-Tools CP-SAT, the industrial-grade kind used for crew scheduling and factory planning. Its decision is narrow by design: for each of 1,217 route-period-daytype cells, it may pick a <em>longer</em> headway from the menu {10, 12, 15, 20, 30, 45, 60 minutes}, or leave it alone. It cannot delete routes, shorten service spans, or reroute anything. It minimizes vehicle-kilometres subject to five families of constraints, every one asserted programmatically against the solution in the test suite:</p>
+  <ul>
+    <li><strong>Capacity</strong> — modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario&rsquo;s policy load factor.</li>
+    <li><strong>Availability</strong> — no stop loses service in any period it has today; nothing drops worse than hourly; already-sparse service (hourly, or fewer than 4 trips in a period) is untouchable.</li>
+    <li><strong>Service standards</strong> — routes running every 15 minutes or better <em>stay</em> at 15 or better, mirroring the Primary Transit Network promise in Calgary&rsquo;s own RouteAhead strategy; and no rider&rsquo;s wait more than doubles, anywhere.</li>
+    <li><strong>A ridership budget</strong> — boardings lost to longer waits (using a standard headway elasticity of −0.4) must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. The solver spends this budget where it buys the most fuel per lost rider.</li>
+    <li><strong>Fleet sanity</strong> — headways never shorten, so trips and peak vehicle needs only go down.</li>
+  </ul>
+  <p>That constraint list didn&rsquo;t arrive fully formed. It was forced into existence by failure — which is the part of this project I trust most, and the part worth reading even if you skip everything else.</p>
+</section>
+
+<section id="mistake">
+  <p class="kicker">07 · Methodological honesty</p>
+  <h2>The 50% mistake</h2>
+  <p>The first version of the optimizer had only the capacity constraint. It confidently reported that Calgary could cut <strong>half of all bus vehicle-kilometres</strong>. Its favourite move: gutting the MAX BRT lines — the spine of the network — to hourly.</p>
+  <p>The number was absurd, and the diagnosis was the interesting part. The demand model, built from stop-catchment population, under-ranks exactly the routes whose ridership comes from frequency and connections rather than from who lives within a 400-metre walk. The optimizer — as optimizers do — found the model&rsquo;s weakest point and drove the entire solution through it. It wasn&rsquo;t malfunctioning. It was doing precisely what it was told, to a model that was wrong in a specific, exploitable place.</p>
+  <p>Adding the frequent-network and no-wait-doubles guardrails brought &ldquo;savings&rdquo; down to ~35% — still implausible. With modeled loads thin almost everywhere, <em>cut everything to the policy floor</em> was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios — the published numbers are shaped by it more than by anything else.</p>
+
+  <figure class="viz">
+    <div class="fig-title">Three runs of the same optimizer</div>
+    <div class="fig-sub">Claimed savings, % of annual bus vehicle-km — July 2026 GTFS</div>
+    <svg viewBox="0 0 680 205" role="img" aria-label="Bar chart: capacity-only run claimed about 50% savings, adding frequent-network guardrails about 35%, and the published constraint set 10.4%.">
+      <!-- gridlines at 0 / 25 / 50 (plot x: 8..608, 55% scale) -->
+      <line class="svg-grid" x1="8"   y1="8" x2="8"   y2="168"/>
+      <line class="svg-grid" x1="281" y1="8" x2="281" y2="168"/>
+      <line class="svg-grid" x1="553" y1="8" x2="553" y2="168"/>
+      <text class="svg-tick" x="8" y="184">0%</text>
+      <text class="svg-tick" x="281" y="184" text-anchor="middle">25%</text>
+      <text class="svg-tick" x="553" y="184" text-anchor="middle">50%</text>
+      <!-- run 1: capacity only, ~50% -->
+      <text class="svg-label" x="8" y="22">Capacity constraint only <tspan fill="var(--ink-3)">— gutted the BRT lines to hourly</tspan></text>
+      <rect x="8" y="30" width="545" height="18" fill="var(--mark-muted)" rx="4"/>
+      <rect x="8" y="30" width="9" height="18" fill="var(--mark-muted)"/>
+      <text class="svg-value" x="561" y="44">≈50%</text>
+      <!-- run 2: + guardrails, ~35% -->
+      <text class="svg-label" x="8" y="80">+ Frequent network stays frequent, no wait doubles <tspan fill="var(--ink-3)">— still implausible</tspan></text>
+      <rect x="8" y="88" width="382" height="18" fill="var(--mark-muted)" rx="4"/>
+      <rect x="8" y="88" width="9" height="18" fill="var(--mark-muted)"/>
+      <text class="svg-value" x="398" y="102">≈35%</text>
+      <!-- run 3: published -->
+      <text class="svg-label-strong" x="8" y="138">+ Hard ridership-loss budget <tspan class="svg-label" fill="var(--ink-3)">— the published, conservative result</tspan></text>
+      <rect x="8" y="146" width="114" height="18" fill="var(--save-2)" rx="4"/>
+      <rect x="8" y="146" width="9" height="18" fill="var(--save-2)"/>
+      <text class="svg-value" x="130" y="160">10.4%</text>
+    </svg>
+    <figcaption>Each run is the same solver over the same network — only the constraint set changes. The first two answers are rejected, not because the solver erred, but because it exploited the demand model&rsquo;s known blind spot. Gray: rejected runs. Violet: published.</figcaption>
+  </figure>
+
+  <p class="pull">A savings estimate is only as strong as its constraint set. Anyone who publishes an optimization result without showing you the constraints is showing you the answer they wanted.</p>
+  <p>I&rsquo;m stating this plainly because any transit professional would spot it anyway — and because it generalizes far beyond buses. The published result is what survives after closing the model&rsquo;s known gap with policy guardrails, and every one of those guardrails is checked in code against the final solution, not assumed in prose.</p>
+</section>
+
+<section id="where">
+  <p class="kicker">08 · The findings</p>
+  <h2>Where the savings actually live</h2>
+  <p>Not downtown, and not on the frequent grid — the guardrails hold the core network in place, and weekday peak service is barely touched. The savings are overwhelmingly <strong>weekend-daytime and weekday off-peak trims on long, thin routes</strong>: route <span class="route">23</span> going from every 19 minutes to every 30 on weekends, <span class="route">43</span> from 21 to 30, <span class="route">302</span> and <span class="route">20</span> from every ~27 minutes to every 45.</p>
+
+  <figure class="viz">
+    <div class="fig-title">What a &ldquo;trim&rdquo; looks like from the curb</div>
+    <div class="fig-sub">Route 23, weekend daytime — departures across one hour</div>
+    <svg viewBox="0 0 680 130" role="img" aria-label="Two timelines of departures over one hour. Today, route 23 departs every 19 minutes: four departures. Proposed, every 30 minutes: three departures.">
+      <!-- legend/labels are the row labels themselves -->
+      <text class="svg-label-strong" x="8" y="18">Today <tspan class="svg-label" fill="var(--ink-3)">· every 19 min</tspan></text>
+      <line x1="8" y1="40" x2="648" y2="40" stroke="var(--hairline)" stroke-width="1"/>
+      <g fill="var(--mark-muted)">
+        <rect x="8"   y="29" width="4" height="22" rx="2"/>
+        <rect x="207" y="29" width="4" height="22" rx="2"/>
+        <rect x="406" y="29" width="4" height="22" rx="2"/>
+        <rect x="605" y="29" width="4" height="22" rx="2"/>
+      </g>
+      <text class="svg-label-strong" x="8" y="78">Proposed <tspan class="svg-label" fill="var(--ink-3)">· every 30 min</tspan></text>
+      <line x1="8" y1="100" x2="648" y2="100" stroke="var(--hairline)" stroke-width="1"/>
+      <g fill="var(--save-2)">
+        <rect x="8"   y="89" width="4" height="22" rx="2"/>
+        <rect x="322" y="89" width="4" height="22" rx="2"/>
+        <rect x="636" y="89" width="4" height="22" rx="2"/>
+      </g>
+      <!-- time axis -->
+      <text class="svg-tick" x="8" y="122">:00</text>
+      <text class="svg-tick" x="167" y="122" text-anchor="middle">:15</text>
+      <text class="svg-tick" x="325" y="122" text-anchor="middle">:30</text>
+      <text class="svg-tick" x="484" y="122" text-anchor="middle">:45</text>
+      <text class="svg-tick" x="648" y="122" text-anchor="end">:60</text>
+    </svg>
+    <figcaption>The conservative scenario&rsquo;s changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain — no wait more than doubles, no stop loses service, and the systemwide modeled ridership loss stays under 2%.</figcaption>
+  </figure>
+
+  <p>The scale of change is deliberately narrow. In the conservative scenario:</p>
+  <div class="meter">
+    <div class="m-label"><strong>406 of 1,217</strong> route-period cells change at all — the other two-thirds of the schedule is untouched</div>
+    <div class="m-track"><div class="m-fill"></div></div>
+  </div>
+  <p>Already-sparse service is untouched by construction. Nothing comes from the frequent core on weekdays — the Primary Transit Network guardrail and the capacity constraint hold it in place. The 27 long, thin routes flagged in the supply stage contribute heavily, joined by mid-frequency crosstowns whose modeled loads leave headroom even at doubled headways.</p>
+  <p>It&rsquo;s worth noticing what species of decision this is: <strong>the same one the city just made with express routes</strong> — service that costs a lot per rider carried, rebalanced toward where it buys more. Two very different processes — Calgary Transit&rsquo;s internal planning practice and an open optimization model — independently point at the same kind of slack. That convergence is exactly why I&rsquo;d defend the result as a credible <em>scale estimate</em>, even while the demand layer stays a model.</p>
+</section>
+
+<section id="upside">
+  <p class="kicker">09 · Not counted</p>
+  <h2>The savings I didn&rsquo;t count</h2>
+  <p>One finding from the supply stage never made it into the headline numbers, because it isn&rsquo;t a cut at all. <strong>62 routes share at least half of their alignment with another route.</strong> The biggest overlapping corridors are long: <span class="route">36</span>↔<span class="route">41</span> share 23.2&nbsp;km, <span class="route">4</span>↔<span class="route">5</span> share 21.8&nbsp;km, <span class="route">117</span>↔<span class="route">302</span> share 20.7&nbsp;km. (Some pairs are the two halves of intentional loops — the analysis flags those separately.)</p>
+  <p>On a shared corridor, two routes each running every 30 minutes can be scheduled as a combined bus every 15 — or they can bunch, arriving together and leaving a 29-minute gap. Coordinated offset scheduling costs nothing: <strong>no new trips, no new buses, just timetable arithmetic</strong> — and it raises the <em>effective</em> frequency riders experience on those corridors. That upside is not in the savings figures above. It&rsquo;s the positive-sum follow-up, and arguably the least controversial idea in this whole project.</p>
+</section>
+
+<section id="limits">
+  <p class="kicker">10 · Limitations</p>
+  <h2>What this does <em>not</em> say</h2>
+  <p>This section is deliberately long. An open model earns its keep by being checkable, and that starts with the author listing the weaknesses before someone else does.</p>
+  <ul>
+    <li><strong>It doesn&rsquo;t say buses are empty.</strong> It says a model calibrated to published totals finds thin modeled loads in specific places, with the spatial pattern unvalidated against passenger counts — because no public passenger counts exist. Per-stop automatic passenger counter (APC) data, which Calgary Transit has internally, would replace the weakest layer of this pipeline while keeping everything else intact. That&rsquo;s a partnership pitch, not a gotcha.</li>
+    <li><strong>The dollar and CO₂ figures are fleet-average.</strong> The 0.5&nbsp;L/km diesel factor is a placeholder; Calgary&rsquo;s CNG and electric buses reduce the litres, not the kilometres. The vehicle-km figure is the robust one — convert it with whatever fleet mix you believe.</li>
+    <li><strong>The ridership elasticity (−0.4) is a literature constant,</strong> not estimated from Calgary data. The 2–5% scenario spread is the sensitivity treatment.</li>
+    <li><strong>Trips are assumed to scale linearly with headway.</strong> A real runcut — driver schedules, vehicle blocking, layovers, interlining — would move the numbers some percent in either direction.</li>
+    <li><strong>Hour-of-day demand shape comes from canonical curves,</strong> because Calgary&rsquo;s open cordon counts are daily totals only. Peak concentration is varied ±15% across scenarios rather than estimated.</li>
+    <li><strong>Suburban job centres are under-modeled.</strong> Employment attraction outside downtown — malls, hospitals, campuses, industrial parks — enters only through the LRT-feeder bonus, so routes serving them are likely underestimated. The guardrails are the shield: worst case, a busier-than-modeled route gets its frequency back in the next review cycle; it never loses service entirely.</li>
+    <li><strong>This audits the July 2026 network</strong> — the schedule as it exists <em>before</em> the August 31 changes land. That&rsquo;s deliberate, and it&rsquo;s the subject of the next section.</li>
+  </ul>
+</section>
+
+<section id="next">
+  <p class="kicker">11 · What&rsquo;s next</p>
+  <h2>Before and after August 31</h2>
+  <p>Because this analysis runs on the July 2026 GTFS, it is — by construction — a <strong>baseline snapshot of the exact network the Transit Service Reviews are about to redesign</strong>. When the fall schedule publishes, re-running the pipeline is a one-command, before-and-after comparison of the largest network change Calgary has made in years: which corridors gained frequency, which lost it, and what the rebalancing is worth in vehicle-kilometres, dollars, and CO₂. I&rsquo;d argue that&rsquo;s the most useful thing an open model can offer while the changes roll out.</p>
+  <p>Meanwhile, a collector has been archiving Calgary&rsquo;s GTFS-Realtime feeds — every vehicle position, every predicted stop time, around 500 buses per poll — since mid-July. That captures something unrepeatable: <strong>how the old network actually performed in its final weeks</strong>. Schedule adherence, real headway regularity, where buses bunch. Part 2, coming in August, will put the realtime record against the schedule — and after August 31, against the new network.</p>
+</section>
+
+<section id="you">
+  <p class="kicker">12 · An open offer</p>
+  <h2>If you&rsquo;re reading this at city hall — or on the bus</h2>
+  <p><strong>If you work at Calgary Transit:</strong> the offer in this project is the obvious one. Open data alone gets this far. Your APC data would make it decision-grade, and the pipeline is built so that swapping measured demand in for modeled demand is a one-module change. The constraint set is already written in your own policy&rsquo;s language — RouteAhead&rsquo;s frequent-network promise is a hard constraint in the code.</p>
+  <p><strong>If you maintain the open data portal:</strong> three additions would have materially improved this work — hourly (not just daily) cordon counts, any per-stop or per-route ridership product, and <code style="font-family:var(--mono);font-size:0.85em">occupancy_status</code> in the GTFS-Realtime feed. This project is, among other things, a demonstration of what re-users could build with them.</p>
+  <p><strong>If you&rsquo;re a rider, an advocate, or a councillor&rsquo;s office:</strong> the point of publishing the method — including its failure modes — is that you can check the reasoning, not just the conclusion. The <a href="https://blheson.github.io/yyc-bus-audit/">map</a> shows every route colored by savings opportunity, with per-route detail: current versus proposed headways, modeled load profiles, and which guardrail did what. Argue with the constraints. That&rsquo;s what they&rsquo;re for.</p>
+</section>
+
+</article>
+
+<footer class="colophon">
+  <h2>Colophon</h2>
+  <p>Every number in this post is generated by the open pipeline at <a href="https://github.com/blheson/yyc-bus-audit">github.com/blheson/yyc-bus-audit</a> — Python (pandas, OR-Tools CP-SAT) for the analysis, React and Leaflet for the <a href="https://blheson.github.io/yyc-bus-audit/">interactive map</a>. Detailed findings: <a href="https://github.com/blheson/yyc-bus-audit/blob/master/docs/FINDINGS-supply.md">supply</a> · <a href="https://github.com/blheson/yyc-bus-audit/blob/master/docs/FINDINGS-demand.md">demand</a> · <a href="https://github.com/blheson/yyc-bus-audit/blob/master/docs/FINDINGS-optimizer.md">optimizer</a>.</p>
+  <p>Built entirely on <a href="https://data.calgary.ca">Open Calgary</a> datasets: static GTFS <code>npk7-z3bj</code>, GTFS-Realtime vehicle positions <code>am7c-qe3u</code> and trip updates <code>gs4m-mdc2</code>, monthly ridership <code>iema-jbc4</code>, 2021 federal census by community, 2016 civic census modes of travel <code>7ta2-pupq</code>, LRT stations <code>2axz-xm4q</code>, CBD cordon counts, and transit routes GIS <code>hpnd-riq4</code>.</p>
+  <p>City sources: <a href="https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html">Transit Service Reviews</a> · <a href="https://www.calgarytransit.com/plans---projects/long-term-strategic-plans.html">RouteAhead</a> · <a href="https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/">LiveWire Calgary on the express changes</a>.</p>
+  <p>This is an independent project and is not affiliated with or endorsed by Calgary Transit or The City of Calgary. — <strong>Blessing Udor</strong>, <a href="mailto:blessingalex.u@gmail.com">blessingalex.u@gmail.com</a></p>
+</footer>
+
+</div>
+</body>
+</html>
