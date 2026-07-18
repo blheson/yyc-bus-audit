@@ -32,3 +32,4 @@ data/
 *.sln
 *.sw?
 .claude
+*_local.md
