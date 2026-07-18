@@ -1,201 +1,170 @@
-# Calgary is redesigning its bus network right now. Here's what the open data says the math looks like.
+# Calgary is redesigning its bus network. Here's what the open data says the math looks like.
 
-*A civic data project: an open, reproducible model of Calgary's bus
-network built entirely from public data — with an optimizer that finds
-~10% of bus vehicle-kilometres (~$4.1M/yr, ~6,700 t CO₂) that could be
-saved or reinvested, without any stop losing service.*
+*An open, reproducible model of Calgary's bus network built entirely from public data, with a constraint solver (a program that searches a huge space of options for the best plan that obeys a list of rules) that finds about 10% of bus vehicle-kilometres (kilometres driven by buses in service) that could be saved or reinvested, without any stop losing service. This is the full story: the method, the numbers, and the one big mistake that taught me more than the result did.*
+
+**Blessing Udor** · July 2026 · YYC Bus Audit, a civic data project
 
 **Live map:** [blheson.github.io/yyc-bus-audit](https://blheson.github.io/yyc-bus-audit/)
-· **Code & data pipeline:**
-[github.com/blheson/yyc-bus-audit](https://github.com/blheson/yyc-bus-audit)
+· **Code & pipeline:** [github.com/blheson/yyc-bus-audit](https://github.com/blheson/yyc-bus-audit)
+
+Headline findings, conservative scenario: **5.0M** vehicle-kilometres saved per year (10.4% of all bus veh-km) · **$4.1M** operating cost per year at fleet-average diesel · **6,700 t** CO₂ per year (about 2.5M litres of diesel) · **under 2%** modeled ridership impact, enforced as a hard cap. Demand is modeled, not measured, and every constraint is asserted in code.
 
 ---
 
-## The moment
+## 01 · The biggest rebalancing of Calgary's bus network in years starts August 31
 
-Calgary Transit is in the middle of the largest rebalancing of its bus
-network in years. The [Transit Service
-Reviews](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html)
-for North Central, Saddletowne, and Fish Creek roll out finalized route
-changes starting **August 31, 2026** (Fish Creek follows in December 2026
-and March 2027). As part of the same rebalancing, [most remaining express
-routes are being phased
-out](https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/).
-The city's stated rationale: express routes are "resource-intensive and
-serve a relatively limited number of customers in one direction," and
-those service hours buy more when reallocated into frequent, all-day,
-two-way service on core routes.
+Calgary Transit is in the middle of the largest redesign of its bus network in years. The [Transit Service Reviews](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html) for North Central, Saddletowne, and Fish Creek roll out finalized route changes starting **August 31, 2026**, with Fish Creek phases following in December 2026 and March 2027. As part of the same rebalancing, [most remaining express routes are being phased out](https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/).
 
-That is a resource-allocation argument, and it's the right one. But it
-has so far been made qualitatively: the public materials contain no
-dollar figures, no ridership-impact estimates, and no published model
-that residents, advocates, or councillors can inspect.
+The city's stated rationale is worth quoting, because this whole project hangs off it: express routes are "resource-intensive and serve a relatively limited number of customers in one direction," and those service hours buy more when reallocated into frequent, all-day, two-way service on core routes.
 
-This project is an attempt to supply the missing quantitative half of
-that conversation — using only data the city itself publishes. Not to
-second-guess Calgary Transit's planners, who have data and constraints
-this model can't see, but to show what the trade-off space looks like
-when the reasoning is open, and to give the civic conversation numbers
-it can argue with.
+That is a resource-allocation argument, and I think it's the right one. But so far it has been made *qualitatively*. The public materials contain no dollar figures, no ridership-impact estimates, and no published model that residents, advocates, or councillors can inspect, question, or argue with.
 
-The model reaches, independently, the same directional conclusion the
-city did: Calgary's bus network carries real slack in its thinnest
-service, and modest, guardrailed frequency changes free up a lot of
-resources at a small, bounded cost. Here is how much, and how sure we
-can be.
+## 02 · The missing quantitative half of a public conversation
 
-## The headline
+So I built the missing half, using only data the city itself publishes on [Open Calgary](https://data.calgary.ca). A Python pipeline reads the GTFS schedule (the machine-readable timetable transit agencies publish for trip-planning apps) and computes exactly what the network runs. A demand model, calibrated to Calgary's published ridership totals, estimates where those buses are full and where they aren't. And a constraint solver searches over bus frequencies for changes that save resources while honoring a set of explicit, inspectable service guarantees.
 
-**Calgary's bus network could save about 5.0 million vehicle-kilometres
-per year — roughly 10% of all bus vehicle-km, ≈2.5M litres of diesel,
-≈6,700 tonnes of CO₂, ≈$4.1M annually — with modeled ridership impact
-under 2% and no stop losing service in any period it has today.**
+Two things this project is *not*. It is not an attempt to second-guess Calgary Transit's planners, who have ridership data and operational constraints this model can't see. And it is not a case for cutting service: the same saved kilometres can be read as a **reallocation dividend**, service hours that could buy higher frequency where buses are full, which is exactly the trade the city's own express-route decision is making.
 
-That is the *conservative* scenario of three, and every constraint
-behind it is asserted in code, not assumed:
+What it *is*: a demonstration of what the trade-off space looks like when the reasoning is open. Every number in this post is generated by code you can run, from data anyone can download, under constraints you can read and disagree with.
+
+The model reaches, independently, the same directional conclusion the city did: Calgary's bus network carries real slack in its thinnest service, and modest, guardrailed frequency changes free up a lot of resources at a small, bounded cost. Here is how much, and how sure we can be.
+
+## 03 · The headline, with its uncertainty attached
+
+**Calgary's bus network could save about 5.0 million vehicle-kilometres per year, roughly 10% of all bus vehicle-km, ≈2.5 million litres of diesel, ≈6,700 tonnes of CO₂, ≈$4.1M annually, with modeled ridership impact under 2% and no stop losing service in any period it has today.**
+
+That is the *conservative* scenario of three. Because the demand model is built on proxies (stand-in measurements used when the real one is unavailable) rather than passenger counts, I run everything under three demand assumptions and report the spread as the honest uncertainty band:
 
 | Scenario | Saved veh-km/yr | % of bus veh-km | Diesel L/yr | t CO₂/yr | $/yr | Modeled ridership impact |
 |---|---|---|---|---|---|---|
-| Conservative | 5.03M | 10.4% | 2.51M | 6,739 | $4.1M | −2.0% |
+| **Conservative** | 5.03M | 10.4% | 2.51M | 6,739 | $4.1M | −2.0% |
 | Moderate | 6.85M | 14.2% | 3.43M | 9,186 | $5.7M | −3.5% |
 | Aggressive | 8.02M | 16.6% | 4.01M | 10,743 | $6.6M | −5.0% |
 
-Demand is *modeled, not measured* (Calgary publishes no per-stop
-ridership), which is why this write-up reports ranges and leads with the
-conservative bound. The limitations section below is not fine print —
-it's half the point.
+*Ridership impact is a hard optimizer constraint per scenario, not an observed outcome. Dollar figures use a fleet-average 0.5 L/km diesel factor at ~$1.65/L.*
 
-And "savings" doesn't have to mean cuts banked as fuel money. The same
-5M vehicle-km is a **reallocation dividend**: service hours that could
-buy higher frequency where buses are full, exactly the trade the city's
-own express-route decision is making.
+Demand is **modeled, not measured**. Calgary publishes no per-stop or per-route ridership, which is why this write-up reports ranges and leads with the conservative bound. The limitations section near the end is not fine print; it's half the point of publishing this at all.
 
-## What was built
+## 04 · Stage 1 (`supply.py`): what Calgary actually runs
 
-Everything runs from [Open Calgary](https://data.calgary.ca) datasets:
-the static GTFS schedule, GTFS-Realtime feeds, monthly ridership totals,
-census population and transit mode share, and downtown cordon counts.
-Three stages:
+The foundation is the static GTFS schedule, the timetable Calgary Transit publishes for trip planners. Parsed and measured (July 2026 regular service): **10,077 bus trips per weekday** covering **146,691 vehicle-kilometres**, which adds up to about **48.4 million bus vehicle-km a year**, roughly 24.2 million litres of diesel and 64,800 tonnes of CO₂ at a fleet-average factor. The unit economics that matter for everything downstream: **every 1% of vehicle-km is worth about 242,000 litres of diesel and roughly $400k a year.**
 
-**1. Supply — what Calgary actually runs.** Parsed from the July 2026
-GTFS: ~10,000 bus trips per weekday, ~48.4M bus vehicle-km per year
-(≈24.2M litres of diesel, ≈64,800 t CO₂ at a fleet-average factor).
-Every 1% of vehicle-km is worth ~242,000 litres and ~$400k a year. Two
-findings shaped everything downstream: only 6 of 145 weekday routes run
-hourly-or-worse midday — they're just 1.5% of vehicle-km, so cutting
-"empty" community routes saves almost nothing — and 27 routes are long
-(>15 km) at ≤30-minute frequency, which is where thin service actually
-burns fuel.
+Two findings from this stage shaped the whole project:
 
-**2. Demand — a calibrated model, honestly labeled.** Calgary publishes
-no per-stop or per-route ridership, so the model spreads the published
-citywide total (224,517 weekday bus boardings) across stops using
-population within 400m, community transit mode share, a
-downtown-attraction kernel, and an LRT-feeder bonus. Totals are
-anchored to published figures; the spatial distribution is an estimate,
-carried through as three scenarios rather than one point claim. The
-model's verdict on those 27 flagged routes: median modeled midday peak
-load of ~14 passengers on a 55-seat bus, even conservatively.
+- **The "empty hourly bus" is mostly a myth and a distraction.** Only 6 of Calgary's 145 weekday bus routes run hourly-or-worse midday, and together they account for just **1.5% of system vehicle-km**. Cutting the routes that *feel* emptiest saves almost nothing and hurts the riders who depend on them most. If you want savings, they are not where the intuition points.
+- **The real candidates are long and mid-frequency.** 27 routes are longer than 15 km and run every 30 minutes or better: long enough that each trip burns real fuel, frequent enough that a change in headway (the gap between one bus and the next) multiplies across many daily trips. Whether they can be trimmed depends entirely on demand, which the schedule alone can't tell you. Hence stage two.
 
-**3. Optimizer — with guardrails doing the real work.** A constraint
-solver (Google OR-Tools CP-SAT) picks longer headways per route and
-period, minimizing vehicle-km subject to: no stop loses service in any
-period it has today; nothing drops worse than hourly; routes running
-every 15 minutes or better stay that way (mirroring RouteAhead's
-Primary Transit Network promise); no wait more than doubles; modeled
-peak loads stay within capacity; and total modeled ridership loss stays
-under a hard budget (2% in the conservative scenario) using a standard
-wait-time elasticity.
+The supply analysis also surfaced a lead I'll come back to: **62 routes share at least half of their alignment with another route.** The largest overlapping corridors (stretches of road served by more than one route) run to 23 km, and the slowest routes in the city (routes 7, 17, 48, and 6) crawl at a median speed of 15 to 16 km/h (the median is the middle value: half of trips are slower, half faster), burning disproportionate fuel per kilometre of coverage.
 
-## The part that should earn your trust
+## 05 · Stage 2 (`demand_model.py`): modeling demand when the city publishes none
 
-The first version of the optimizer had only a capacity constraint, and
-it "saved" **50% of vehicle-km** — by gutting the MAX BRT lines to
-hourly. That number was absurd, and the reason is instructive: the
-demand model, built from stop-catchment population, under-ranks trunk
-routes whose ridership comes from frequency and connections, and the
-optimizer drove straight through that blind spot. A textbook case of an
-optimizer exploiting its model's weakest point.
+Here is the awkward fact at the centre of this project: **Calgary publishes no per-stop or per-route ridership data.** Not on the open data portal, not in the transit reports. The city publishes one citywide monthly boarding total (a boarding is one passenger getting on one bus). Calgary Transit's buses do count their passengers (automatic passenger counters, sensors that tally riders at the doors, exist on the fleet), but that data stays internal.
 
-The published result is what survives after closing that gap with
-policy guardrails — the frequent network stays frequent, waits at most
-double, and a system-wide ridership-loss budget becomes the binding
-constraint. The honest lesson, stated plainly because any transit
-professional will spot it anyway: **a savings estimate is only as
-strong as its constraint set.** This one is deliberately conservative,
-and every constraint is checked programmatically against the solution.
+So the demand layer is a **calibrated structural model**: built from causes such as who lives near a stop and where jobs are, then scaled to match a known total. I'll describe it plainly so you can judge it. Each bus stop's demand potential is built from four open ingredients:
 
-## Where the savings actually live
+- **Population within 400 m** of the stop (2021 federal census by community, shared between nearby stops so no resident is double-counted);
+- **the community's transit mode share**, the fraction of residents who commute by transit (from the 2016 civic census, the last one that asked);
+- **a downtown-attraction kernel**: a mathematical bump centred on downtown that fades over about 3 km, standing in for the job density the census can't give per block; and
+- **an LRT-feeder bonus** (+35% within 600 m of a CTrain station, because stops that feed riders into the train attract more boardings than their walking catchment alone would suggest).
 
-Not downtown, and not on the frequent grid — the guardrails hold the
-core network in place, and weekday peak service is barely touched.
-The savings are overwhelmingly **weekend daytime and weekday off-peak
-trims on long, thin routes**: route 23 going from every 19 to every 30
-minutes on weekends, route 43 from 21 to 30, routes 302 and 20 from
-~27 to 45. In the conservative scenario, exactly 406 of 1,217
-route-period cells change at all; already-sparse service is untouched.
+Those potentials are spread across the day using canonical transit demand curves (standard hour-by-hour ridership shapes from the transit literature), then scaled so the citywide total exactly matches Calgary Transit's published figure: **224,517 bus boardings per weekday** (the average of the monthly totals published for 2024 and 2025). The totals are anchored to reality; the *spatial distribution* is an estimate, which is why every load is carried through as three scenarios rather than one point claim.
 
-This is the same species of decision as the city's express-route
-phase-out — service that costs a lot per rider carried, rebalanced —
-which is precisely why the number is credible as a *scale estimate*:
-two very different processes, the city's planning practice and an open
-optimization model, point at the same kind of slack.
+### Does it pass a sanity check?
 
-There's also untouched upside: 62 routes share half or more of their
-alignment with another route. Coordinated (offset) scheduling on those
-corridors could raise *effective* frequency for riders without adding a
-single trip. That's not in the savings numbers — it's the positive-sum
-follow-up.
+The one independent measurement available is the downtown cordon count, the city's tally of every person crossing an imaginary line around the core. The model puts 10.6% of boardings (~23,800/day) at stops within 1.5 km of the centre of the downtown cordon; the 2023 cordon counted ~105k inbound transit occupants a day *including CTrain*, which carries more than half of transit volume. Same order of magnitude, consistent, not proof. I flag it exactly that way.
 
-## What this does *not* say
+### What the model says
 
-- **It doesn't say buses are empty.** It says a model calibrated to
-  published totals finds thin modeled loads in specific places, with
-  the spatial pattern unvalidated. Per-stop automatic passenger counter
-  (APC) data — which Calgary Transit has internally — would replace the
-  weakest layer of this pipeline while keeping the rest intact. That's
-  the partnership pitch, not a gotcha.
-- **The dollar and CO₂ figures are fleet-average.** 0.5 L/km diesel is
-  a placeholder; Calgary's CNG and electric buses reduce the litres
-  (not the kilometres). The vehicle-km number is the robust one.
-- **Ridership impact uses a literature elasticity (−0.4),** not one
-  estimated from Calgary data; the 2–5% scenario spread is the
-  sensitivity treatment.
-- **Trips are assumed to scale linearly with headway.** A real runcut
-  (driver schedules, blocking, layovers) would move the numbers some
-  percent in either direction.
-- **This audits the July 2026 network** — the schedule as it exists
-  *before* the August 31 changes land. That's deliberate: it's a
-  baseline snapshot of the network the TSRs are redesigning. Re-running
-  the pipeline on the fall GTFS is a one-command comparison of before
-  and after — arguably the most useful thing an open model can offer as
-  the changes roll out.
+- **The 27 flagged routes are as thin as the schedule suggested.** Median modeled midday peak load: **about 14 passengers on a ~55-seat bus** under the *conservative* scenario. 21 of the 27 stay under 20. These routes carry real but thin demand: candidates for frequency trades, never for elimination.
+- **The headroom is broad, not local.** 88% of weekday route-period cells (a cell is one route in one time block of the day, like route 23 on weekend middays) have a conservative peak load under 28 passengers, half a bus's seated capacity. That's the size of the *opportunity space*, not the savings: policy floors and guardrails bind long before capacity does.
+- **Nothing approaches full.** No modeled midday load comes near seated capacity, which matches what Calgary's midday actually looks like from the sidewalk.
 
-## What's next
+One design decision deserves its own paragraph, because it becomes the villain of the next section. The model is deliberately **supply-blind**: it contains no frequency term, because a demand model that rewards frequency would let the optimizer justify cuts by the very cuts it makes, a circularity trap. The cost of that choice is real: routes whose ridership comes from *being frequent*, like the MAX BRT lines (bus rapid transit, the high-frequency spine of the network) and the trunk grid, get under-ranked, since their few stops sum small walk-shed catchments (a walk-shed is the area within an easy walk of a stop). I knew this was the model's weakest point. I found out how weak the hard way.
 
-The pipeline, model, optimizer, and interactive map are open source.
-The map shows every route colored by savings opportunity, with per-route
-detail: current vs. proposed headways, modeled load profiles, and what
-the guardrails did.
+## 06 · Stage 3 (`optimize.py`): the optimizer, and the leash it runs on
 
-If you work at Calgary Transit: the offer in this project is the
-obvious one. Open data alone gets this far; your APC data would make it
-decision-grade, and the entire pipeline is built so that swapping in
-measured demand is a one-module change.
+The final stage is a constraint solver, Google OR-Tools CP-SAT, the industrial-grade kind used for crew scheduling and factory planning. Its decision is narrow by design: for each of 1,217 route-period-daytype cells, it may pick a *longer* headway from the menu {10, 12, 15, 20, 30, 45, 60 minutes}, or leave it alone. It cannot delete routes, shorten service spans, or reroute anything. It minimizes vehicle-kilometres subject to five families of constraints, every one asserted programmatically against the solution in the test suite:
 
-If you're a rider, an advocate, or a councillor's office: the point of
-publishing the method — including its failure modes — is that you can
-check the reasoning, not just the conclusion. Argue with the
-constraints. That's what they're for.
+- **Capacity**: modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario's policy load factor, the fraction of capacity a policy allows to be filled.
+- **Availability**: no stop loses service in any period it has today; nothing drops worse than hourly; already-sparse service (hourly, or fewer than 4 trips in a period) is untouchable.
+- **Service standards**: routes running every 15 minutes or better *stay* at 15 or better, mirroring the Primary Transit Network promise in Calgary's own RouteAhead strategy; and no rider's wait more than doubles, anywhere.
+- **A ridership budget**: boardings lost to longer waits must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. Losses are estimated with a standard headway elasticity of −0.4 (an elasticity is a number from the research literature describing how much ridership falls as waits grow). The solver spends this budget where it buys the most fuel per lost rider.
+- **Fleet sanity**: headways never shorten, so trips and peak vehicle needs only go down.
+
+That constraint list didn't arrive fully formed. It was forced into existence by failure, which is the part of this project I trust most, and the part worth reading even if you skip everything else.
+
+## 07 · The 50% mistake
+
+The first version of the optimizer had only the capacity constraint. It confidently reported that Calgary could cut **half of all bus vehicle-kilometres**. Its favourite move: gutting the MAX BRT lines (the spine of the network) to hourly.
+
+The number was absurd, and the diagnosis was the interesting part. The demand model, built from stop-catchment population, under-ranks exactly the routes whose ridership comes from frequency and connections rather than from who lives within a 400-metre walk. The optimizer, as optimizers do, found the model's weakest point and drove the entire solution through it. It wasn't malfunctioning. It was doing precisely what it was told, to a model that was wrong in a specific, exploitable place.
+
+Adding the frequent-network and no-wait-doubles guardrails brought "savings" down to ~35%, still implausible. With modeled loads thin almost everywhere, *cut everything to the policy floor* was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios; the published numbers are shaped by it more than by anything else.
+
+Three runs of the same optimizer over the same July 2026 network. Only the constraint set changes:
+
+| Constraint set | Claimed savings (% of annual bus veh-km) |
+|---|---|
+| Capacity constraint only (gutted the BRT lines to hourly) | ≈50%, rejected |
+| + Frequent network stays frequent, no wait doubles | ≈35%, still implausible |
+| **+ Hard ridership-loss budget** | **10.4%, the published, conservative result** |
+
+The first two answers are rejected not because the solver erred, but because it exploited the demand model's known blind spot.
+
+> **A savings estimate is only as strong as its constraint set. Anyone who publishes an optimization result without showing you the constraints is showing you the answer they wanted.**
+
+I'm stating this plainly because any transit professional would spot it anyway, and because it generalizes far beyond buses. The published result is what survives after closing the model's known gap with policy guardrails, and every one of those guardrails is checked in code against the final solution, not assumed in prose.
+
+## 08 · Where the savings actually live
+
+Not downtown, and not on the frequent grid: the guardrails hold the core network in place, and weekday peak service is barely touched. The savings are overwhelmingly **weekend-daytime and weekday off-peak trims on long, thin routes**: route 23 going from every 19 minutes to every 30 on weekends, route 43 from 21 to 30, routes 302 and 20 from every ~27 minutes to every 45.
+
+From the curb, the conservative scenario's changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain. No wait more than doubles, no stop loses service, and the systemwide modeled ridership loss stays under 2%.
+
+The scale of change is deliberately narrow. In the conservative scenario, **406 of 1,217** route-period cells change at all; the other two-thirds of the schedule is untouched. Already-sparse service is untouched by construction. Nothing comes from the frequent core on weekdays: the Primary Transit Network guardrail and the capacity constraint hold it in place. The 27 long, thin routes flagged in the supply stage contribute heavily, joined by mid-frequency crosstowns whose modeled loads leave headroom even at doubled headways.
+
+It's worth noticing what species of decision this is: **the same one the city just made with express routes**, service that costs a lot per rider carried, rebalanced toward where it buys more. Two very different processes, Calgary Transit's internal planning practice and an open optimization model, independently point at the same kind of slack. That convergence is exactly why I'd defend the result as a credible *scale estimate*, even while the demand layer stays a model.
+
+## 09 · The savings I didn't count
+
+One finding from the supply stage never made it into the headline numbers, because it isn't a cut at all. **62 routes share at least half of their alignment with another route.** The biggest overlapping corridors are long: routes 36 and 41 share 23.2 km, 4 and 5 share 21.8 km, 117 and 302 share 20.7 km. (Some pairs are the two halves of intentional loops; the analysis flags those separately.)
+
+On a shared corridor, two routes each running every 30 minutes can be scheduled as a combined bus every 15, or they can bunch: arrive together, then leave a 29-minute gap. Coordinated offset scheduling costs nothing (**no new trips, no new buses, just timetable arithmetic**), and it raises the *effective* frequency riders experience on those corridors. That upside is not in the savings figures above. It's the positive-sum follow-up, and arguably the least controversial idea in this whole project.
+
+## 10 · What this does *not* say
+
+This section is deliberately long. An open model earns its keep by being checkable, and that starts with the author listing the weaknesses before someone else does.
+
+- **It doesn't say buses are empty.** It says a model calibrated to published totals finds thin modeled loads in specific places, with the spatial pattern unvalidated against passenger counts, because no public passenger counts exist. Per-stop automatic passenger counter (APC) data, which Calgary Transit has internally, would replace the weakest layer of this pipeline while keeping everything else intact. That's a partnership pitch, not a gotcha.
+- **The dollar and CO₂ figures are fleet-average.** The 0.5 L/km diesel factor is a placeholder; Calgary's CNG and electric buses reduce the litres, not the kilometres. The vehicle-km figure is the robust one; convert it with whatever fleet mix you believe.
+- **The ridership elasticity (−0.4) is a literature constant,** not estimated from Calgary data. The 2 to 5% scenario spread is the sensitivity treatment.
+- **Trips are assumed to scale linearly with headway.** A real runcut (the detailed work of turning a timetable into driver shifts and vehicle assignments, with blocking, layovers, and interlining, where one bus finishes a route and continues as another) would move the numbers some percent in either direction.
+- **Hour-of-day demand shape comes from canonical curves,** because Calgary's open cordon counts are daily totals only. Peak concentration is varied ±15% across scenarios rather than estimated.
+- **Suburban job centres are under-modeled.** Employment attraction outside downtown, such as malls, hospitals, campuses, and industrial parks, enters only through the LRT-feeder bonus, so routes serving them are likely underestimated. The guardrails are the shield: worst case, a busier-than-modeled route gets its frequency back in the next review cycle; it never loses service entirely.
+- **This audits the July 2026 network**, the schedule as it exists *before* the August 31 changes land. That's deliberate, and it's the subject of the next section.
+
+## 11 · Before and after August 31
+
+Because this analysis runs on the July 2026 GTFS, it is by construction a **baseline snapshot of the exact network the Transit Service Reviews are about to redesign**. When the fall schedule publishes, re-running the pipeline is a one-command, before-and-after comparison of the largest network change Calgary has made in years: which corridors gained frequency, which lost it, and what the rebalancing is worth in vehicle-kilometres, dollars, and CO₂. I'd argue that's the most useful thing an open model can offer while the changes roll out.
+
+Meanwhile, a collector has been archiving Calgary's GTFS-Realtime feeds (the live data stream of where every bus is and when it will reach each stop) since mid-July: every vehicle position, every predicted stop time, around 500 buses per poll. That captures something unrepeatable: **how the old network actually performed in its final weeks**. Schedule adherence, real headway regularity, where buses bunch. Part 2, coming in August, will put the realtime record against the schedule, and after August 31, against the new network.
+
+## 12 · If you're reading this at city hall or on the bus
+
+**If you work at Calgary Transit:** the offer in this project is the obvious one. Open data alone gets this far. Your APC data would make it decision-grade, and the pipeline is built so that swapping measured demand in for modeled demand is a one-module change. The constraint set is already written in your own policy's language: RouteAhead's frequent-network promise is a hard constraint in the code.
+
+**If you maintain the open data portal:** three additions would have materially improved this work: hourly (not just daily) cordon counts, any per-stop or per-route ridership product, and `occupancy_status` in the GTFS-Realtime feed. This project is, among other things, a demonstration of what re-users could build with them.
+
+**If you're a rider, an advocate, or a councillor's office:** the point of publishing the method, including its failure modes, is that you can check the reasoning, not just the conclusion. The [map](https://blheson.github.io/yyc-bus-audit/) shows every route colored by savings opportunity, with per-route detail: current versus proposed headways, modeled load profiles, and which guardrail did what. Argue with the constraints. That's what they're for.
 
 ---
 
-*Built on Open Calgary data: static GTFS (`npk7-z3bj`), GTFS-RT
-(`am7c-qe3u`, `gs4m-mdc2`), monthly ridership (`iema-jbc4`), federal and
-civic census, downtown cordon counts. Methodology details:
-[FINDINGS-supply.md](FINDINGS-supply.md),
-[FINDINGS-demand.md](FINDINGS-demand.md),
-[FINDINGS-optimizer.md](FINDINGS-optimizer.md). City sources:
-[Transit Service Reviews](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html),
-[RouteAhead](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans.html),
-[LiveWire Calgary on the express changes](https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/).*
+## Colophon
+
+Every number in this post is generated by the open pipeline at [github.com/blheson/yyc-bus-audit](https://github.com/blheson/yyc-bus-audit): Python (pandas, OR-Tools CP-SAT) for the analysis, React and Leaflet for the [interactive map](https://blheson.github.io/yyc-bus-audit/). Detailed findings: [supply](FINDINGS-supply.md) · [demand](FINDINGS-demand.md) · [optimizer](FINDINGS-optimizer.md).
+
+Built entirely on [Open Calgary](https://data.calgary.ca) datasets: static GTFS `npk7-z3bj`, GTFS-Realtime vehicle positions `am7c-qe3u` and trip updates `gs4m-mdc2`, monthly ridership `iema-jbc4`, 2021 federal census by community, 2016 civic census modes of travel `7ta2-pupq`, LRT stations `2axz-xm4q`, CBD cordon counts, and transit routes GIS `hpnd-riq4`.
+
+City sources: [Transit Service Reviews](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans/designing-our-network/transit-service-reviews.html) · [RouteAhead](https://www.calgarytransit.com/plans---projects/long-term-strategic-plans.html) · [LiveWire Calgary on the express changes](https://livewirecalgary.com/2026/06/30/calgary-transit-changes-this-fall-mean-some-modified-express-service-will-remain/).
+
+This is an independent project and is not affiliated with or endorsed by Calgary Transit or The City of Calgary. **Blessing Udor**, [blessingalex.u@gmail.com](mailto:blessingalex.u@gmail.com)

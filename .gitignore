@@ -31,3 +31,4 @@ data/
 *.njsproj
 *.sln
 *.sw?
+.claude
