@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const GOAL_DAYS = 14;
+const GOAL_DAYS = 21;
 const MB = 1024 * 1024;
 
 function ageLabel(iso, nowMs) {
