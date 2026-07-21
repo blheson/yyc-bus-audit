@@ -487,7 +487,7 @@ footer.colophon p { margin-bottom: 0.8rem; }
   <ul>
     <li><strong>Capacity</strong>: modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario&rsquo;s policy load factor.</li>
     <li><strong>Availability</strong>: no stop loses service in any period it has today; nothing drops worse than hourly; already-sparse service (hourly, or fewer than 4 trips in a period) is untouchable.</li>
-    <li><strong>Service standards</strong>: routes running every 15 minutes or better <em>stay</em> at 15 or better, mirroring the Primary Transit Network promise in Calgary&rsquo;s own RouteAhead strategy; and no rider&rsquo;s wait more than doubles, anywhere.</li>
+    <li><strong>Service standards</strong>: routes running every 15 minutes or better <em>stay</em> at 15 or better, mirroring the Primary Transit Network promise in Calgary&rsquo;s own RouteAhead strategy; and no rider waits more than double the original, anywhere.</li>
     <li><strong>A ridership budget</strong>: boardings lost to longer waits (using a standard headway elasticity of −0.4) must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. The solver spends this budget where it buys the most fuel per lost rider.</li>
     <li><strong>Fleet sanity</strong>: headways never shorten, so trips and peak vehicle needs only go down.</li>
   </ul>
@@ -499,7 +499,7 @@ footer.colophon p { margin-bottom: 0.8rem; }
   <h2>The 50% mistake</h2>
   <p>The first version of the optimizer had only the capacity constraint. It confidently reported that Calgary could cut <strong>half of all bus vehicle-kilometres</strong>. Its favourite move: gutting the MAX BRT lines (the spine of the network) to hourly.</p>
   <p>The number was absurd, and the diagnosis was the interesting part. The demand model, built from stop-catchment population, under-ranks exactly the routes whose ridership comes from frequency and connections rather than from who lives within a 400-metre walk. The optimizer, as optimizers do, found the model&rsquo;s weakest point and drove the entire solution through it. It wasn&rsquo;t malfunctioning. It was doing precisely what it was told, to a model that was wrong in a specific, exploitable place.</p>
-  <p>Adding the frequent-network and no-wait-doubles guardrails brought &ldquo;savings&rdquo; down to ~35%, still implausible. With modeled loads thin almost everywhere, <em>cut everything to the policy floor</em> was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios; the published numbers are shaped by it more than by anything else.</p>
+  <p>Adding the frequent-network guardrail and the rule that no rider waits more than double the original brought &ldquo;savings&rdquo; down to ~35%, still implausible. With modeled loads thin almost everywhere, <em>cut everything to the policy floor</em> was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios; the published numbers are shaped by it more than by anything else.</p>
 
   <figure class="viz">
     <div class="fig-title">Three runs of the same optimizer</div>
@@ -518,7 +518,7 @@ footer.colophon p { margin-bottom: 0.8rem; }
       <rect x="8" y="30" width="9" height="18" fill="var(--mark-muted)"/>
       <text class="svg-value" x="561" y="44">≈50%</text>
       <!-- run 2: + guardrails, ~35% -->
-      <text class="svg-label" x="8" y="80">+ Frequent network stays frequent, no wait doubles <tspan fill="var(--ink-3)">· still implausible</tspan></text>
+      <text class="svg-label" x="8" y="80">+ Frequent network stays frequent, no rider waits more than double the original <tspan fill="var(--ink-3)">· still implausible</tspan></text>
       <rect x="8" y="88" width="382" height="18" fill="var(--mark-muted)" rx="4"/>
       <rect x="8" y="88" width="9" height="18" fill="var(--mark-muted)"/>
       <text class="svg-value" x="398" y="102">≈35%</text>
@@ -567,7 +567,7 @@ footer.colophon p { margin-bottom: 0.8rem; }
       <text class="svg-tick" x="484" y="122" text-anchor="middle">:45</text>
       <text class="svg-tick" x="648" y="122" text-anchor="end">:60</text>
     </svg>
-    <figcaption>The conservative scenario&rsquo;s changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain: no wait more than doubles, no stop loses service, and the systemwide modeled ridership loss stays under 2%.</figcaption>
+    <figcaption>The conservative scenario&rsquo;s changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain: no rider waits more than double the original, no stop loses service, and the systemwide modeled ridership loss stays under 2%.</figcaption>
   </figure>
 
   <p>The scale of change is deliberately narrow. In the conservative scenario:</p>

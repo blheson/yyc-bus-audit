@@ -87,7 +87,7 @@ The final stage is a constraint solver, Google OR-Tools CP-SAT, the industrial-g
 
 - **Capacity**: modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario's policy load factor, the fraction of capacity a policy allows to be filled.
 - **Availability**: no stop loses service in any period it has today; nothing drops worse than hourly; already-sparse service (hourly, or fewer than 4 trips in a period) is untouchable.
-- **Service standards**: routes running every 15 minutes or better *stay* at 15 or better, mirroring the Primary Transit Network promise in Calgary's own RouteAhead strategy; and no rider's wait more than doubles, anywhere.
+- **Service standards**: routes running every 15 minutes or better *stay* at 15 or better, mirroring the Primary Transit Network promise in Calgary's own RouteAhead strategy; and no rider waits more than double the original, anywhere.
 - **A ridership budget**: boardings lost to longer waits must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. Losses are estimated with a standard headway elasticity of −0.4 (an elasticity is a number from the research literature describing how much ridership falls as waits grow). The solver spends this budget where it buys the most fuel per lost rider.
 - **Fleet sanity**: headways never shorten, so trips and peak vehicle needs only go down.
 
@@ -99,14 +99,14 @@ The first version of the optimizer had only the capacity constraint. It confiden
 
 The number was absurd, and the diagnosis was the interesting part. The demand model, built from stop-catchment population, under-ranks exactly the routes whose ridership comes from frequency and connections rather than from who lives within a 400-metre walk. The optimizer, as optimizers do, found the model's weakest point and drove the entire solution through it. It wasn't malfunctioning. It was doing precisely what it was told, to a model that was wrong in a specific, exploitable place.
 
-Adding the frequent-network and no-wait-doubles guardrails brought "savings" down to ~35%, still implausible. With modeled loads thin almost everywhere, *cut everything to the policy floor* was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios; the published numbers are shaped by it more than by anything else.
+Adding the frequent-network guardrail and the rule that no rider waits more than double the original brought "savings" down to ~35%, still implausible. With modeled loads thin almost everywhere, *cut everything to the policy floor* was still the optimum. What finally turned the exercise into a genuine trade-off was the ridership-loss budget: a hard, system-wide cap on modeled boardings lost. It is the binding constraint in all three scenarios; the published numbers are shaped by it more than by anything else.
 
 Three runs of the same optimizer over the same July 2026 network. Only the constraint set changes:
 
 | Constraint set | Claimed savings (% of annual bus veh-km) |
 |---|---|
 | Capacity constraint only (gutted the BRT lines to hourly) | ≈50%, rejected |
-| + Frequent network stays frequent, no wait doubles | ≈35%, still implausible |
+| + Frequent network stays frequent, no rider waits more than double the original | ≈35%, still implausible |
 | **+ Hard ridership-loss budget** | **10.4%, the published, conservative result** |
 
 The first two answers are rejected not because the solver erred, but because it exploited the demand model's known blind spot.
@@ -119,7 +119,7 @@ I'm stating this plainly because any transit professional would spot it anyway, 
 
 Not downtown, and not on the frequent grid: the guardrails hold the core network in place, and weekday peak service is barely touched. The savings are overwhelmingly **weekend-daytime and weekday off-peak trims on long, thin routes**: route 23 going from every 19 minutes to every 30 on weekends, route 43 from 21 to 30, routes 302 and 20 from every ~27 minutes to every 45.
 
-From the curb, the conservative scenario's changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain. No wait more than doubles, no stop loses service, and the systemwide modeled ridership loss stays under 2%.
+From the curb, the conservative scenario's changes look like this: a weekend bus that came every 19 minutes now comes every 30. The guardrails cap the pain. No rider waits more than double the original, no stop loses service, and the systemwide modeled ridership loss stays under 2%.
 
 The scale of change is deliberately narrow. In the conservative scenario, **406 of 1,217** route-period cells change at all; the other two-thirds of the schedule is untouched. Already-sparse service is untouched by construction. Nothing comes from the frequent core on weekdays: the Primary Transit Network guardrail and the capacity constraint hold it in place. The 27 long, thin routes flagged in the supply stage contribute heavily, joined by mid-frequency crosstowns whose modeled loads leave headroom even at doubled headways.
 
