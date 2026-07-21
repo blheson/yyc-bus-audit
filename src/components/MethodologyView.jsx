@@ -48,7 +48,7 @@ export default function MethodologyView() {
           The full story, including why the first optimizer run was wrong,
           is in{" "}
           <a
-            href="https://github.com/blheson/yyc-bus-audit/blob/master/docs/WRITEUP.md"
+            href="https://blheson.github.io/yyc-bus-audit/writeup.html"
             target="_blank"
             rel="noreferrer"
             style={{ color: "var(--ink-1)", textDecoration: "underline" }}
