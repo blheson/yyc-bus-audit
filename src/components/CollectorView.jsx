@@ -159,9 +159,11 @@ export default function CollectorView() {
 
           <p className="mt-3 text-[11px] leading-snug" style={{ color: "var(--ink-3)" }}>
             The collector is its own process on this Mac: it keeps running if
-            you close this page, stops with the button above, and pauses while
-            the machine sleeps. It polls Calgary Transit's realtime feeds and
-            saves them under data/rt/.
+            you close this page and stops with the button above. While it
+            runs, caffeinate (a built-in macOS tool that keeps the machine
+            awake) blocks sleep, though closing the lid on battery power
+            still sleeps the Mac and pauses collection. It polls Calgary
+            Transit's realtime feeds and saves them under data/rt/.
           </p>
         </section>
 

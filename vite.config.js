@@ -134,6 +134,18 @@ function archiverApi() {
           child.unref();
           fs.closeSync(out);
           fs.writeFileSync(PID_FILE, String(child.pid));
+          if (process.platform === "darwin") {
+            // -w ties the sleep assertion to the collector pid, so this
+            // exits on its own when the run stops; -i blocks idle sleep,
+            // -s blocks system sleep while on AC power. A closed lid on
+            // battery still sleeps the machine.
+            const caffeinate = spawn(
+              "/usr/bin/caffeinate",
+              ["-i", "-s", "-w", String(child.pid)],
+              { detached: true, stdio: "ignore" },
+            );
+            caffeinate.unref();
+          }
           sendJson(res, 200, { started: true, pid: child.pid });
           return;
         }
