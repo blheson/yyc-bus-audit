@@ -24,6 +24,7 @@ yyc-bus-audit/
 │   ├── ingest_gtfs.py        # download + parse CT_GTFS.zip
 │   ├── archive_rt.py         # poll RT feeds → daily parquet
 │   ├── supply.py             # vehicle-km, headways, overlap analysis
+│   ├── rt_coverage.py        # per-day coverage windows (Mac slept during parts of some days)
 │   ├── rt_metrics.py         # speeds, adherence, bunching (needs archived weeks)
 │   ├── demand_model.py       # stop×hour boardings estimate, calibrated to monthly totals
 │   ├── optimize.py           # OR-Tools frequency-setting MIP
@@ -53,6 +54,10 @@ Pipeline outputs static JSON; no backend server needed.
 - `archive_rt.py`: poll VP (`https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream`) + trip updates every 60s, parse with `gtfs-realtime-bindings`, append to daily parquet in `data/rt/`. ~30MB/day raw; parquet much smaller.
 - Run via launchd agent on macOS (provide plist + install instructions); resilient to network blips.
 - After ~2 weeks: `rt_metrics.py` → actual segment speeds by hour, schedule adherence, bunching, layover/dead time.
+  - Must filter every day through `rt_coverage.day_windows()` and weight per-period stats by
+    `covered_secs()` for that period, never by wall clock. The Mac slept through parts of several
+    days (07-18 is evening-only; 07-16 and 07-17 are missing ~04:00-08:00), and macOS dark wakes
+    left stray single polls that must not count as coverage. `python rt_coverage.py` prints the table.
 
 ### Phase 3 — Demand model (the "AI" estimation layer)
 - Features per stop: population within 400m (census communities), community transit mode-share, LRT-feeder flag, distance to downtown, stop's route count.
