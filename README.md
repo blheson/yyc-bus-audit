@@ -11,7 +11,7 @@ a Python pipeline (GTFS supply analysis → calibrated demand model →
 CP-SAT frequency optimizer) presented on an interactive map.
 
 - **Live map:** https://blheson.github.io/yyc-bus-audit/
-- **Write-up:** [blog post](https://blheson.github.io/yyc-bus-audit/writeup.html) ([markdown](docs/WRITEUP.md)) — the argument, the method, and what it does *not* say
+- **Write-up:** [blog post](https://blheson.github.io/yyc-bus-audit/writeup.html), the argument, the method, and what it does *not* say
 - **Detailed findings:** [supply](docs/FINDINGS-supply.md) · [demand](docs/FINDINGS-demand.md) · [optimizer](docs/FINDINGS-optimizer.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pipeline fits together, with a system diagram
 - **Plan / roadmap:** [PLAN.md](PLAN.md)
