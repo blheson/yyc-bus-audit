@@ -50,6 +50,9 @@ PTN_HEADWAY = 15          # frequent-network promise: routes now <=15 min stay <
 MAX_DEGRADATION = 2.0     # wait time may at most double
 # Longer waits lose riders: standard headway elasticity of demand
 # (-0.3..-0.5 in the literature; linear approximation, fine for <=2x).
+# In range with TCRP Report 95 ch.9 (Evans, 2004; frequency elasticities
+# ~0.26-0.5) and TRL Report 593 (Balcombe et al., 2004; 0.38 short-run
+# bus average across 27 studies) -- not estimated from Calgary data.
 # Each scenario caps the modeled system-wide ridership loss — this is the
 # constraint that turns "cut everything thin" into a real trade-off.
 ELASTICITY = 0.4

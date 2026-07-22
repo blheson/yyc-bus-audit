@@ -87,7 +87,14 @@ constraint set**, and this one is deliberately conservative.
   (compressed natural gas and battery-electric buses) reduces the litres
   (not the km). Restate before any public claim.
 - Elasticity −0.4 is a literature constant (a value taken from published
-  transit research), not estimated from Calgary data; the scenario spread
+  transit research), not estimated from Calgary data. It sits within the
+  range reported by the two standard references: [TCRP Report 95, ch. 9](https://www.trb.org/publications/tcrp/tcrp_rpt_95c9.pdf)
+  (Evans, 2004; Transit Cooperative Research Program, a US/Canadian
+  transit research body), whose frequency-elasticity estimates run about
+  0.26 to 0.5 depending on method, and [TRL Report 593](https://www.trl.co.uk/uploads/trl/documents/TRL593%20-%20The%20Demand%20for%20Public%20Transport.pdf)
+  (Balcombe et al., 2004; Transport Research Laboratory, a UK transport
+  research body), whose 27-study average for short-run bus service
+  elasticity is 0.38. Neither is Calgary-specific. The scenario spread
   (2 to 5% budget) is the sensitivity treatment, showing how the result
   moves if the assumption is off.
 - Coordinated-offset scheduling on overlapping corridors (supply finding
