@@ -39,7 +39,7 @@ export default function MethodologyView() {
           every number that rests on a model is labeled as modeled. The honest
           limitation up front:{" "}
           <strong style={{ color: "var(--ink-1)" }}>
-            Calgary publishes no per-stop or per-route ridership, so demand here is
+            Calgary does not publish per-stop or per-route ridership, so demand here is
             estimated, not measured.
           </strong>
         </p>
@@ -148,13 +148,31 @@ export default function MethodologyView() {
             <li>
               <strong style={{ color: "var(--ink-1)" }}>Service standards</strong>:
               routes at ≤15 min stay ≤15 min (the frequent-network promise, a bus at
-              least every 15 minutes); no wait more than doubles.
+              least every 15 minutes); no rider waits more than double the original.
             </li>
             <li>
               <strong style={{ color: "var(--ink-1)" }}>Ridership</strong>: boardings
               lost to longer waits stay under a system-wide budget of 2% / 3.5% / 5%
               by scenario, using a headway elasticity of −0.4 (a 10% longer wait
-              costs about 4% of boardings). This is the binding constraint, the
+              costs about 4% of boardings), within the range reported by{" "}
+              <a
+                href="https://www.trb.org/publications/tcrp/tcrp_rpt_95c9.pdf"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "var(--ink-1)", textDecoration: "underline" }}
+              >
+                TCRP Report 95
+              </a>{" "}
+              and{" "}
+              <a
+                href="https://www.trl.co.uk/uploads/trl/documents/TRL593%20-%20The%20Demand%20for%20Public%20Transport.pdf"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "var(--ink-1)", textDecoration: "underline" }}
+              >
+                TRL Report 593
+              </a>
+              , not estimated from Calgary data. This is the binding constraint, the
               limit the optimizer runs into first.
             </li>
           </ul>
