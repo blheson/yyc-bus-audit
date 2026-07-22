@@ -483,12 +483,12 @@ footer.colophon p { margin-bottom: 0.8rem; }
 <section id="optimizer">
   <p class="kicker">06 · Stage 3 · <code style="font-family:var(--mono);font-size:0.8em;text-transform:none;letter-spacing:0">optimize.py</code></p>
   <h2>The optimizer, and the leash it runs on</h2>
-  <p>The final stage is a constraint solver, Google OR-Tools CP-SAT, the industrial-grade kind used for crew scheduling and factory planning. Its decision is narrow by design: for each of 1,217 route-period-daytype cells, it may pick a <em>longer</em> headway from the menu {10, 12, 15, 20, 30, 45, 60 minutes}, or leave it alone. It cannot delete routes, shorten service spans, or reroute anything. It minimizes vehicle-kilometres subject to five families of constraints, every one asserted programmatically against the solution in the test suite:</p>
+  <p>The final stage is a constraint solver, Google OR-Tools CP-SAT, it is used extensively in crew scheduling and factory planning. Its decision is narrow by design: for each of 1,217 route-period-daytype cells, it may pick a <em>longer</em> headway from the menu {10, 12, 15, 20, 30, 45, 60 minutes}, or leave it alone. It cannot delete routes, shorten service spans, or reroute anything. It minimizes vehicle-kilometres subject to five families of constraints, every one asserted programmatically against the solution in the test suite:</p>
   <ul>
-    <li><strong>Capacity</strong>: modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario&rsquo;s policy load factor.</li>
+    <li><strong>Capacity</strong>: modeled peak load per trip (which concentrates as trips thin out) must stay within a 55-seat bus at the scenario&rsquo;s policy load factor, the fraction of capacity a policy allows to be filled.</li>
     <li><strong>Availability</strong>: no stop loses service in any period it has today; nothing drops worse than hourly; already-sparse service (hourly, or fewer than 4 trips in a period) is untouchable.</li>
     <li><strong>Service standards</strong>: routes running every 15 minutes or better <em>stay</em> at 15 or better, mirroring the Primary Transit Network promise in Calgary&rsquo;s own RouteAhead strategy; and no rider waits more than double the original, anywhere.</li>
-    <li><strong>A ridership budget</strong>: boardings lost to longer waits (using a standard headway elasticity of −0.4) must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. The solver spends this budget where it buys the most fuel per lost rider.</li>
+    <li><strong>A ridership budget</strong>: boardings lost to longer waits must stay under a system-wide cap: 2% conservative, 3.5% moderate, 5% aggressive. Losses are estimated with a standard headway elasticity of −0.4 (an elasticity is a number from the research literature describing how much ridership falls as waits grow). The solver spends this budget where it buys the most fuel per lost rider.</li>
     <li><strong>Fleet sanity</strong>: headways never shorten, so trips and peak vehicle needs only go down.</li>
   </ul>
   <p>That constraint list didn&rsquo;t arrive fully formed. It was forced into existence by failure, which is the part of this project I trust most, and the part worth reading even if you skip everything else.</p>
@@ -538,7 +538,7 @@ footer.colophon p { margin-bottom: 0.8rem; }
 <section id="where">
   <p class="kicker">08 · The findings</p>
   <h2>Where the savings actually live</h2>
-  <p>Not downtown, and not on the frequent grid: the guardrails hold the core network in place, and weekday peak service is barely touched. The savings are overwhelmingly <strong>weekend-daytime and weekday off-peak trims on long, thin routes</strong>: route <span class="route">23</span> going from every 19 minutes to every 30 on weekends, <span class="route">43</span> from 21 to 30, <span class="route">302</span> and <span class="route">20</span> from every ~27 minutes to every 45.</p>
+  <p> the guardrails hold the core network (downtown,  the frequent grid etc) in place, and weekday peak service is barely touched. The savings are overwhelmingly <strong>weekend-daytime and weekday off-peak trims on long, thin routes</strong>: route <span class="route">23</span> going from every 19 minutes to every 30 on weekends, <span class="route">43</span> from 21 to 30, <span class="route">302</span> and <span class="route">20</span> from every ~27 minutes to every 45.</p>
 
   <figure class="viz">
     <div class="fig-title">What a &ldquo;trim&rdquo; looks like from the curb</div>
