@@ -1,11 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Pane, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import { fuelStep, savingsStep, shortRouteName } from "../lib/data";
 
 const CALGARY_CENTER = [51.0447, -114.0719];
 
 const FUEL_COLORS = ["--fuel-0", "--fuel-1", "--fuel-2", "--fuel-3", "--fuel-4"];
 const SAVE_COLORS = ["--save-0", "--save-1", "--save-2", "--save-3", "--save-4"];
+
+// CARTO basemaps need an API key (referer-restricted, so safe to ship in the
+// bundle). The production key only allows the GitHub Pages domain, so dev uses
+// a separate localhost key. Without one, fall back to Esri's keyless tiles.
+const CARTO_KEY = import.meta.env.DEV
+  ? import.meta.env.VITE_CARTO_KEY_LOCAL
+  : import.meta.env.VITE_CARTO_KEY;
+
+function basemapTiles(dark) {
+  if (CARTO_KEY) {
+    const style = dark ? "dark" : "light";
+    const url = (layer) =>
+      `https://{s}.basemaps.cartocdn.com/${style}_${layer}/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`;
+    return {
+      base: url("nolabels"),
+      labels: url("only_labels"),
+      maxNativeZoom: 20,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    };
+  }
+  const canvas = dark ? "World_Dark_Gray" : "World_Light_Gray";
+  const url = (layer) =>
+    `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${canvas}_${layer}/MapServer/tile/{z}/{y}/{x}`;
+  return {
+    base: url("Base"),
+    labels: url("Reference"),
+    maxNativeZoom: 16,
+    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
+  };
+}
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -75,9 +106,7 @@ export default function RouteMap({
     return colors.fuel[fuelStep(r, thresholds)];
   };
 
-  const tileUrl = dark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+  const tiles = basemapTiles(dark);
 
   return (
     <MapContainer
@@ -88,10 +117,16 @@ export default function RouteMap({
       className="h-full w-full"
     >
       <TileLayer
-        key={tileUrl}
-        url={tileUrl}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        key={tiles.base}
+        url={tiles.base}
+        maxNativeZoom={tiles.maxNativeZoom}
+        attribution={tiles.attribution}
       />
+      {/* Labels sit above the route lines so street names stay readable;
+          pointer-events off so clicks still reach the routes. */}
+      <Pane name="labels" style={{ zIndex: 450, pointerEvents: "none" }}>
+        <TileLayer key={tiles.labels} url={tiles.labels} maxNativeZoom={tiles.maxNativeZoom} />
+      </Pane>
       <DeselectOnMapClick onDeselect={() => onSelect(null)} />
       <FitToSelection route={selected} />
 

@@ -33,3 +33,6 @@ data/
 *.sw?
 .claude
 *_local.md
+.env
+.env
+.env.*
