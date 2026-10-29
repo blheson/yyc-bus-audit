@@ -51,3 +51,20 @@ All from [Open Calgary](https://data.calgary.ca): static GTFS
 (`npk7-z3bj`), GTFS-RT vehicle positions (`am7c-qe3u`) and trip updates
 (`gs4m-mdc2`), monthly ridership (`iema-jbc4`), plus census and cordon
 count datasets for demand modeling (Phase 3).
+
+## Licence
+
+The code and write-up are released under the [MIT License](LICENSE), a
+permissive licence that lets anyone reuse them as long as they keep the
+copyright notice.
+
+The MIT License does not cover the transit data. That data belongs to the
+City of Calgary and is used under the City's
+[Open Government Licence](https://data.calgary.ca/stories/s/Open-Calgary-Terms-of-Use/u45n-7awa),
+which allows free reuse as long as the source is credited:
+
+> Contains information licensed under the Open Government Licence – City of Calgary.
+
+The files generated from it in `public/data/` remain subject to that
+licence, and this project is not affiliated with or endorsed by the City
+of Calgary or Calgary Transit.
