@@ -33,14 +33,12 @@ export default function MethodologyView() {
       <div className="mx-auto max-w-3xl space-y-4 p-4 pb-10">
         <p className="max-w-2xl text-[13px] leading-relaxed" style={{ color: "var(--ink-2)" }}>
           This is an unofficial, open-data-only analysis. Everything below can be
-          reproduced from the public pipeline, the chain of scripts that turns raw
-          open data into these numbers. Every guarantee the optimizer makes is
-          asserted in code (an automated check fails if it is ever broken), and
-          every number that rests on a model is labeled as modeled. The honest
-          limitation up front:{" "}
+          reproduced from the public pipeline. Every guarantee the optimizer makes can be
+          asserted in code, and
+          every number that comes from a model is labeled as modeled. I should point out that{" "}
           <strong style={{ color: "var(--ink-1)" }}>
-            Calgary does not publish per-stop or per-route ridership, so demand here is
-            estimated, not measured.
+            Calgary does not publish per-stop or per-route ridership, so the demand here is
+            estimated.
           </strong>
         </p>
 
@@ -95,8 +93,8 @@ export default function MethodologyView() {
             agencies use to publish schedules): trips, headways, and
             vehicle-kilometres per route and period, cross-checked against route
             geometry. A headway is the gap between one bus and the next; the app
-            reports the median (middle) gap in the worse direction. Vehicle-km is
-            the fuel proxy, a stand-in we can actually measure: ~48.4M bus km/year
+            reports the median gap in the worse direction. Vehicle-km is
+            the fuel proxy, this is done this way so measurement is easy: ~48.4M bus km/year
             ≈ 24.2M litres of diesel ≈ 64,800 t CO₂ at a fleet-average 0.5 L/km
             (Calgary's CNG buses, which run on compressed natural gas, and its
             electric buses make the true litres lower; the kilometres stand).
