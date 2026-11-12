@@ -157,7 +157,7 @@ export default function CollectorView() {
             />
           </div>
 
-          <p className="mt-3 text-[11px] leading-snug" style={{ color: "var(--ink-3)" }}>
+          <p className="mt-3 text-[13px] leading-snug" style={{ color: "var(--ink-3)" }}>
             The collector is its own process on this Mac: it keeps running if
             you close this page and stops with the button above. While it
             runs, caffeinate (a built-in macOS tool that keeps the machine
@@ -196,7 +196,7 @@ export default function CollectorView() {
               }}
             />
           </div>
-          <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+          <p className="mt-1 text-[13px]" style={{ color: "var(--ink-3)" }}>
             Two weeks of weekday + weekend coverage is enough for the speed,
             delay, and bunching analysis. Gaps are fine.
           </p>

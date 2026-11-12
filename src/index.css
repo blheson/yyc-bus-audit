@@ -93,6 +93,21 @@ body,
   font: inherit;
 }
 
+/* touch screens pinch to zoom; the +/- buttons only crowd the map */
+@media (pointer: coarse) {
+  .leaflet-control-zoom {
+    display: none;
+  }
+}
+
+/* sideways-scrolling rows (stats strip, filter chips) on phones */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .leaflet-tooltip.route-tip {
   background: var(--surface-1);
   color: var(--ink-1);

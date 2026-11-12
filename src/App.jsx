@@ -18,7 +18,7 @@ function ViewTabs({ view, onView }) {
   if (import.meta.env.DEV) tabs.push(["collector", "Collector"]);
   return (
     <nav
-      className="flex rounded-lg border p-0.5"
+      className="flex w-full rounded-lg border p-0.5 lg:w-auto"
       style={{ borderColor: "var(--border)" }}
       aria-label="App section"
     >
@@ -28,7 +28,7 @@ function ViewTabs({ view, onView }) {
           type="button"
           onClick={() => onView(key)}
           aria-current={view === key ? "page" : undefined}
-          className="rounded-md px-3 py-1 text-xs font-semibold"
+          className="flex-1 rounded-md px-3 py-2 text-sm font-semibold lg:flex-none lg:py-1 lg:text-xs"
           style={
             view === key
               ? { background: "var(--ink-1)", color: "var(--surface-1)" }
@@ -44,7 +44,7 @@ function ViewTabs({ view, onView }) {
 
 function StatTile({ value, unit, label }) {
   return (
-    <div className="min-w-28">
+    <div className="min-w-28 shrink-0">
       <div className="text-lg font-semibold leading-tight tabular-nums" style={{ color: "var(--ink-1)" }}>
         {value}
         {unit && (
@@ -60,6 +60,44 @@ function StatTile({ value, unit, label }) {
   );
 }
 
+// Below Tailwind's lg breakpoint the network view shows the list or the map,
+// not both, so selecting a route from the list has to switch to the map.
+const isDesktop = () => window.matchMedia("(min-width: 1024px)").matches;
+
+function PaneSwitch({ pane, onPane }) {
+  const panes = [
+    ["list", "List"],
+    ["map", "Map"],
+  ];
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-8 z-[1100] flex justify-center lg:hidden">
+      <div
+        className="pointer-events-auto flex rounded-full border p-1 shadow-lg"
+        style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
+        role="group"
+        aria-label="Show routes as"
+      >
+        {panes.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onPane(key)}
+            aria-pressed={pane === key}
+            className="min-w-20 rounded-full px-4 py-2 text-sm font-semibold"
+            style={
+              pane === key
+                ? { background: "var(--ink-1)", color: "var(--surface-1)" }
+                : { color: "var(--ink-2)" }
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -68,6 +106,7 @@ export default function App() {
   const [sortKey, setSortKey] = useState("fuel");
   const [selectedId, setSelectedId] = useState(null);
   const [colorMode, setColorMode] = useState("savings");
+  const [mobilePane, setMobilePane] = useState("list");
   const [view, setView] = useState(() => {
     const v = new URLSearchParams(window.location.search).get("view");
     const valid = ["savings", "methodology"];
@@ -83,7 +122,10 @@ export default function App() {
         const want = new URLSearchParams(window.location.search).get("route");
         if (want) {
           const match = d.routes.find((r) => r.short_name === want);
-          if (match) setSelectedId(match.route_id);
+          if (match) {
+            setSelectedId(match.route_id);
+            setMobilePane("map");
+          }
         }
       })
       .catch((e) => setError(e.message));
@@ -95,6 +137,11 @@ export default function App() {
   }, [data, filterKey, query, sortKey]);
 
   const selected = data?.routes.find((r) => r.route_id === selectedId) || null;
+
+  const selectFromList = (id) => {
+    setSelectedId(id);
+    if (!isDesktop()) setMobilePane("map");
+  };
 
   if (error) {
     return (
@@ -126,7 +173,7 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <header
-        className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b px-4 py-3"
+        className="flex flex-wrap items-center gap-x-8 gap-y-2 border-b px-4 py-2.5 lg:gap-y-3 lg:py-3"
         style={{ background: "var(--surface-1)", borderColor: "var(--hairline)" }}
       >
         <div>
@@ -136,13 +183,21 @@ export default function App() {
           >
             YYC&nbsp;Bus&nbsp;Audit
           </h1>
-          <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+          <p className="mt-1 text-[13px]" style={{ color: "var(--ink-3)" }}>
             Unofficial analysis of Calgary Transit open data · July 2026 schedule
           </p>
         </div>
-        <div className="mr-auto">
+        <div className="w-full lg:mr-auto lg:w-auto">
           <ViewTabs view={view} onView={setView} />
         </div>
+        {/* On phones the stats are one swipeable row, and are left out of the
+            network view so the list and map get the screen. On desktop the
+            wrapper disappears and the tiles sit in the header row as before. */}
+        <div
+          className={`no-scrollbar -mx-4 w-[calc(100%+2rem)] gap-6 overflow-x-auto px-4 lg:contents ${
+            view === "network" ? "hidden" : "flex"
+          }`}
+        >
         <StatTile
           value={fmt.format(sys.weekday.bus_vehicle_km)}
           unit="km"
@@ -167,6 +222,7 @@ export default function App() {
         ) : (
           <StatTile value={flaggedCount} label="routes flagged" />
         )}
+        </div>
       </header>
 
       {view === "collector" ? (
@@ -179,14 +235,17 @@ export default function App() {
           onSelectRoute={(id) => {
             setSelectedId(id);
             setView("network");
+            setMobilePane("map");
           }}
         />
       ) : view === "methodology" ? (
         <MethodologyView />
       ) : (
-      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside
-          className="max-h-[45vh] min-h-0 overflow-hidden border-b p-3 lg:max-h-none lg:border-b-0 lg:border-r"
+          className={`min-h-0 overflow-hidden p-3 lg:block lg:border-r ${
+            mobilePane === "list" ? "" : "hidden"
+          }`}
           style={{ borderColor: "var(--hairline)" }}
         >
           <RouteList
@@ -198,11 +257,11 @@ export default function App() {
             sortKey={sortKey}
             onSort={setSortKey}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectFromList}
           />
         </aside>
 
-        <section className="relative min-h-0">
+        <section className={`relative min-h-0 lg:block ${mobilePane === "map" ? "" : "hidden"}`}>
           <RouteMap
             routes={data.routes}
             thresholds={data.thresholds}
@@ -214,9 +273,10 @@ export default function App() {
           {data.optimizer && (
             <ColorModeToggle colorMode={colorMode} onColorMode={setColorMode} />
           )}
-          <MapLegend colorMode={data.optimizer ? colorMode : "fuel"} />
+          <MapLegend colorMode={data.optimizer ? colorMode : "fuel"} hiddenOnMobile={!!selected} />
           {selected && (
             <RouteDetail
+              key={selected.route_id}
               route={selected}
               allRoutes={data.routes}
               systemWeekdayKm={sys.weekday.bus_vehicle_km}
@@ -227,6 +287,9 @@ export default function App() {
             />
           )}
         </section>
+        {!(mobilePane === "map" && selected) && (
+          <PaneSwitch pane={mobilePane} onPane={setMobilePane} />
+        )}
       </div>
       )}
     </div>

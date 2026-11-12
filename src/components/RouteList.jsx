@@ -117,14 +117,19 @@ export default function RouteList({
         }}
       />
 
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filter routes">
+      {/* one sideways-scrolling row on phones, wraps on desktop */}
+      <div
+        className="no-scrollbar -mx-3 flex items-center gap-1 overflow-x-auto px-3 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0"
+        role="group"
+        aria-label="Filter routes"
+      >
         {Object.entries(FILTERS).map(([key, f]) => (
           <button
             key={key}
             type="button"
             onClick={() => onFilter(key)}
             aria-pressed={filterKey === key}
-            className="rounded-full border px-2.5 py-1 text-xs font-medium"
+            className="shrink-0 rounded-full border px-3 py-2 text-xs font-medium lg:px-2.5 lg:py-1"
             style={
               filterKey === key
                 ? { background: "var(--ink-1)", color: "var(--surface-1)", borderColor: "var(--ink-1)" }
@@ -134,13 +139,13 @@ export default function RouteList({
             {f.label}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px" style={{ background: "var(--hairline)" }} />
-        <label className="flex items-center gap-1 text-xs" style={{ color: "var(--ink-3)" }}>
+        <span className="mx-1 h-4 w-px shrink-0" style={{ background: "var(--hairline)" }} />
+        <label className="flex shrink-0 items-center gap-1 text-xs" style={{ color: "var(--ink-3)" }}>
           Sort
           <select
             value={sortKey}
             onChange={(e) => onSort(e.target.value)}
-            className="rounded-md border px-1.5 py-1 text-xs"
+            className="rounded-md border px-1.5 py-2 text-xs lg:py-1"
             style={{
               background: "var(--surface-1)",
               borderColor: "var(--border)",
@@ -155,12 +160,16 @@ export default function RouteList({
         </label>
       </div>
 
-      <p className="text-[11px] leading-snug" style={{ color: "var(--ink-3)" }}>
-        Strip cells: median minutes between buses per weekday period — darker
-        means more frequent.
+      <p className="text-[13px] leading-snug" style={{ color: "var(--ink-3)" }}>
+        <span className="lg:hidden">Cells: minutes between buses · darker = more frequent</span>
+        <span className="hidden lg:inline">
+          Strip cells: median minutes between buses per weekday period — darker
+          means more frequent.
+        </span>
       </p>
 
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" role="list">
+      {/* bottom padding on phones clears the floating List/Map switch */}
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-24 pr-1 lg:pb-0" role="list">
         {routes.length === 0 && (
           <div
             className="rounded-lg border p-4 text-sm"

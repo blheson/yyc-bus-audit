@@ -55,12 +55,35 @@ function useDarkMode() {
   return dark;
 }
 
+// On phones the map is display:none while the list is showing, so Leaflet's
+// cached size goes stale. Re-measure whenever the container changes size.
+function TrackContainerSize() {
+  const map = useMap();
+  useEffect(() => {
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(map.getContainer());
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 function FitToSelection({ route }) {
   const map = useMap();
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (route) {
-      map.fitBounds(route.path, { padding: [60, 60], animate: !reduced });
+      // the map may have just been unhidden; measure before fitting
+      map.invalidateSize();
+      const desktop = window.matchMedia("(min-width: 1024px)").matches;
+      // On phones the detail sheet covers the bottom ~45% of the map, so
+      // keep the route in the part above it.
+      const opts = desktop
+        ? { padding: [60, 60] }
+        : {
+            paddingTopLeft: [24, 64],
+            paddingBottomRight: [24, Math.round(map.getSize().y * 0.45) + 24],
+          };
+      map.fitBounds(route.path, { ...opts, animate: !reduced });
     }
   }, [route, map]);
   return null;
@@ -128,6 +151,7 @@ export default function RouteMap({
         <TileLayer key={tiles.labels} url={tiles.labels} maxNativeZoom={tiles.maxNativeZoom} />
       </Pane>
       <DeselectOnMapClick onDeselect={() => onSelect(null)} />
+      <TrackContainerSize />
       <FitToSelection route={selected} />
 
       {routes.map((r) => {
@@ -179,20 +203,48 @@ export default function RouteMap({
   );
 }
 
-export function MapLegend({ colorMode = "fuel" }) {
+// Desktop: always-open card in the bottom-left corner.
+// Phones: a "Legend" chip in the top-right corner that opens the card, and
+// nothing at all while the route detail sheet is up.
+export function MapLegend({ colorMode = "fuel", hiddenOnMobile = false }) {
+  const [open, setOpen] = useState(false);
   const savings = colorMode === "savings";
   const ramp = savings ? SAVE_COLORS : FUEL_COLORS;
+  const surface = {
+    background: "var(--surface-1)",
+    borderColor: "var(--border)",
+    color: "var(--ink-2)",
+  };
   return (
     <div
-      className="pointer-events-none absolute bottom-4 left-4 z-[1000] rounded-lg border px-3 py-2 text-xs shadow-sm"
-      style={{
-        background: "var(--surface-1)",
-        borderColor: "var(--border)",
-        color: "var(--ink-2)",
-      }}
+      className={`absolute right-3 top-3 z-[1000] max-w-[calc(100%-1.5rem)] lg:pointer-events-none lg:bottom-4 lg:left-4 lg:right-auto lg:top-auto lg:block ${
+        hiddenOnMobile ? "hidden" : ""
+      }`}
     >
-      <div className="mb-1 font-medium" style={{ color: "var(--ink-1)" }}>
-        {savings ? "Proposed savings per route (modeled)" : "Weekday travel per route"}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        className={`rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm lg:hidden ${open ? "hidden" : ""}`}
+        style={{ ...surface, color: "var(--ink-1)" }}
+      >
+        Legend
+      </button>
+      <div
+        className={`mt-12 rounded-lg border px-3 py-2 text-xs shadow-sm lg:mt-0 lg:block ${open ? "" : "hidden"}`}
+        style={surface}
+        onClick={() => setOpen(false)}
+      >
+      <div className="mb-1 flex items-start justify-between gap-3 font-medium" style={{ color: "var(--ink-1)" }}>
+        <span>{savings ? "Proposed savings per route (modeled)" : "Weekday travel per route"}</span>
+        <button
+          type="button"
+          aria-label="Close legend"
+          className="-my-1 -mr-1 px-1 text-base leading-none lg:hidden"
+          style={{ color: "var(--ink-3)" }}
+        >
+          ×
+        </button>
       </div>
       <div className="flex items-center gap-1">
         <span>less</span>
@@ -205,7 +257,7 @@ export function MapLegend({ colorMode = "fuel" }) {
         ))}
         <span>{savings ? "more km/yr" : "more km"}</span>
       </div>
-      <div className="mt-1 flex items-center gap-2">
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {savings && (
           <>
             <span
@@ -226,6 +278,7 @@ export function MapLegend({ colorMode = "fuel" }) {
         />
         <span>selected</span>
       </div>
+      </div>
     </div>
   );
 }
@@ -237,7 +290,7 @@ export function ColorModeToggle({ colorMode, onColorMode }) {
   ];
   return (
     <div
-      className="absolute left-14 top-4 z-[1000] flex rounded-lg border p-0.5 text-xs shadow-sm"
+      className="absolute left-3 top-3 z-[1000] flex rounded-lg border p-0.5 text-xs shadow-sm pointer-fine:left-14 pointer-fine:top-4"
       style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
       role="group"
       aria-label="Color routes by"
@@ -248,7 +301,7 @@ export function ColorModeToggle({ colorMode, onColorMode }) {
           type="button"
           onClick={() => onColorMode(key)}
           aria-pressed={colorMode === key}
-          className="rounded-md px-2.5 py-1 font-semibold"
+          className="rounded-md px-3 py-2 font-semibold pointer-fine:px-2.5 pointer-fine:py-1"
           style={
             colorMode === key
               ? { background: "var(--ink-1)", color: "var(--surface-1)" }

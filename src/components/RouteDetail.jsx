@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { FLAG_INFO, PERIOD_NAMES, fmt } from "../lib/data";
 import { FrequencyStrip, Roundel } from "./RouteList";
 
@@ -144,14 +145,45 @@ export default function RouteDetail({ route, allRoutes, systemWeekdayKm, dieselP
   const share = (wk.vehicle_km / systemWeekdayKm) * 100;
   const byId = new Map(allRoutes.map((r) => [r.route_id, r]));
 
+  // Phones: a bottom sheet that opens at about 45% of the map and can be
+  // dragged (or tapped via the handle) up to nearly full height. Swiping
+  // down from the collapsed sheet closes it. Desktop keeps the side card.
+  const [expanded, setExpanded] = useState(false);
+  const touchY = useRef(null);
+  const onTouchStart = (e) => {
+    touchY.current = e.touches[0].clientY;
+  };
+  const onTouchEnd = (e) => {
+    if (touchY.current == null) return;
+    const dy = e.changedTouches[0].clientY - touchY.current;
+    touchY.current = null;
+    if (dy < -40) setExpanded(true);
+    else if (dy > 40) {
+      if (expanded) setExpanded(false);
+      else onClose();
+    }
+  };
+
   return (
     <div
-      className="absolute right-4 top-4 z-[1000] flex max-h-[calc(100%-2rem)] w-80 flex-col overflow-hidden rounded-xl border shadow-lg"
+      className={`absolute inset-x-0 bottom-0 z-[1000] flex flex-col overflow-hidden rounded-t-2xl border shadow-lg transition-[max-height] duration-200 lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-4 lg:max-h-[calc(100%-2rem)] lg:w-80 lg:rounded-xl lg:transition-none ${
+        expanded ? "max-h-[92%]" : "max-h-[45%]"
+      }`}
       style={{ background: "var(--surface-1)", borderColor: "var(--border)" }}
       role="region"
       aria-label={`Route ${route.short_name} details`}
     >
-      <div className="flex items-start gap-2.5 border-b p-3" style={{ borderColor: "var(--hairline)" }}>
+      <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} className="lg:contents">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-label={expanded ? "Show less" : "Show more"}
+        aria-expanded={expanded}
+        className="flex w-full justify-center pb-1 pt-2 lg:hidden"
+      >
+        <span className="h-1 w-10 rounded-full" style={{ background: "var(--hairline)" }} />
+      </button>
+      <div className="flex items-start gap-2.5 border-b px-3 pb-3 lg:p-3" style={{ borderColor: "var(--hairline)" }}>
         <Roundel route={route} size="lg" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold leading-tight" style={{ color: "var(--ink-1)" }}>
@@ -165,14 +197,15 @@ export default function RouteDetail({ route, allRoutes, systemWeekdayKm, dieselP
           type="button"
           onClick={onClose}
           aria-label="Close route details"
-          className="rounded-md px-1.5 text-lg leading-none"
+          className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xl leading-none lg:mr-0 lg:mt-0 lg:h-auto lg:w-auto lg:px-1.5 lg:text-lg"
           style={{ color: "var(--ink-3)" }}
         >
           ×
         </button>
       </div>
+      </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="km per weekday" value={fmt.format(Math.round(wk.vehicle_km))} />
           <Stat label="of all bus km" value={share.toFixed(1)} unit="%" />
